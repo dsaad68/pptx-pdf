@@ -31,6 +31,17 @@ tools/lo-tree      builds the tree; README has the measured numbers
 Fidelity is LibreOffice's, not a reimplementation: the stripped tree renders pixel-identically
 to a full install on the test corpus.
 
+## Fonts
+
+Headless LibreOffice resolves fonts through fontconfig on every platform, macOS included, and
+with no configuration it sees only the fonts it bundles and substitutes silently (Lato becomes
+Linux Libertine, and so on). `lo-runtime` therefore writes a `fonts.conf` per run listing
+LibreOffice's own fonts, the platform's system font directories, anything passed with
+`--font-dir`, and a cache directory — unless the tree ships `etc/fonts` (the Linux trees do)
+or `FONTCONFIG_FILE`/`FONTCONFIG_PATH` is already set, which is honoured as-is. A font that is
+installed on the machine is used; one that is not falls back to LibreOffice's metric-compatible
+substitutes (Carlito for Calibri, Liberation for Arial/Times/Courier, Caladea for Cambria).
+
 ## Building
 
 ```

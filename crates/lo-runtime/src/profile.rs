@@ -49,6 +49,13 @@ impl Profile {
         &self.dir
     }
 
+    /// `user/fonts` inside the profile — scanned by LibreOffice and listed in the generated
+    /// fontconfig configuration.
+    #[must_use]
+    pub fn fonts_dir(&self) -> PathBuf {
+        self.dir.join("user").join("fonts")
+    }
+
     /// Copy every font file directly inside `source` into the profile's `user/fonts`, which
     /// LibreOffice adds to its font path at startup. Returns the number of fonts copied.
     ///
@@ -56,7 +63,7 @@ impl Profile {
     ///
     /// [`Error::Io`] if `source` cannot be read or a copy fails.
     pub fn add_fonts(&self, source: &Path) -> Result<usize> {
-        let dest = self.dir.join("user").join("fonts");
+        let dest = self.fonts_dir();
         std::fs::create_dir_all(&dest)
             .map_err(Error::io("creating profile fonts directory", &dest))?;
         let mut copied = 0;

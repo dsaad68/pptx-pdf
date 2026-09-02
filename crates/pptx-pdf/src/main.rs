@@ -41,8 +41,6 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
     }
 
     let runtime = Runtime::locate(cli.lo_dir.as_deref()).context("locating LibreOffice runtime")?;
-    // Single-threaded here, before LibreOffice loads: the precondition `export_fontconfig` documents.
-    runtime.export_fontconfig();
     let profile = Profile::create().context("creating user profile")?;
     for dir in &cli.font_dir {
         let n = profile
@@ -51,6 +49,11 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
         tracing::info!(dir = %dir.display(), fonts = n, "added fonts");
     }
 
+    // Single-threaded here, before LibreOffice loads: the precondition `configure_fontconfig` documents.
+    let fonts = runtime
+        .configure_fontconfig(&profile)
+        .context("configuring fontconfig")?;
+    tracing::debug!(?fonts, "fontconfig");
     let office =
         Office::load(runtime.program_dir(), profile.url()).context("starting LibreOffice")?;
     tracing::info!(

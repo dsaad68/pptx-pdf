@@ -85,24 +85,6 @@ impl Runtime {
     pub fn install_root(&self) -> &Path {
         &self.install_root
     }
-
-    /// If the tree carries its own fontconfig configuration (`etc/fonts/fonts.conf`, bundled
-    /// for hosts that have none), point fontconfig at it. Returns whether it did.
-    ///
-    /// Must be called before LibreOffice is loaded and while the process is still
-    /// single-threaded: it sets an environment variable, which is only sound then.
-    pub fn export_fontconfig(&self) -> bool {
-        let dir = self.install_root.join("etc").join("fonts");
-        if !dir.join("fonts.conf").is_file() || std::env::var_os("FONTCONFIG_PATH").is_some() {
-            return false;
-        }
-        tracing::debug!(dir = %dir.display(), "using bundled fontconfig configuration");
-        // SAFETY: documented precondition — the caller invokes this before spawning threads
-        // and before LibreOffice (which reads the variable lazily, on first font lookup) is
-        // loaded, so no other thread can be reading the environment concurrently.
-        unsafe { std::env::set_var("FONTCONFIG_PATH", &dir) };
-        true
-    }
 }
 
 #[cfg(test)]

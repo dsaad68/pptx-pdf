@@ -13,9 +13,6 @@ use crate::error::Error;
 static TREE: &[u8] = include_bytes!(env!("PPTX_PDF_LO_TREE"));
 const TREE_SHA256: &str = env!("PPTX_PDF_LO_TREE_SHA256");
 
-/// Override for the cache location.
-const ENV_CACHE_DIR: &str = "PPTX_PDF_CACHE_DIR";
-
 /// Unpack the embedded tree if not already cached, and return its root.
 ///
 /// # Errors
@@ -27,7 +24,7 @@ pub(crate) fn ensure_unpacked() -> Result<PathBuf> {
     if TREE.is_empty() {
         return Err(Error::NoEmbeddedTree);
     }
-    let root = cache_dir()?.join(format!(
+    let root = crate::cache::cache_dir()?.join(format!(
         "lo-{}",
         TREE_SHA256.get(..16).unwrap_or(TREE_SHA256)
     ));
@@ -51,21 +48,4 @@ pub(crate) fn ensure_unpacked() -> Result<PathBuf> {
         Err(e) => return Err(Error::io("finalising cache directory", &root)(e)),
     }
     Ok(root)
-}
-
-fn cache_dir() -> Result<PathBuf> {
-    if let Some(dir) = std::env::var_os(ENV_CACHE_DIR) {
-        return Ok(PathBuf::from(dir));
-    }
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .ok_or(Error::NoCacheDir)?;
-    let base = if cfg!(target_os = "macos") {
-        home.join("Library").join("Caches")
-    } else {
-        std::env::var_os("XDG_CACHE_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| home.join(".cache"))
-    };
-    Ok(base.join("pptx-pdf"))
 }
