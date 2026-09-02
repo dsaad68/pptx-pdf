@@ -50,7 +50,10 @@ with nothing installed, the latter with the single embedded binary and no `--lo-
 - Linux arm64 and x86_64: both trees built and verified end to end, including the embedded
   binary in a bare container. (`PPTX_PDF_ARCH=amd64 tools/lo-tree/build.sh` builds the x86_64
   tree under emulation on an Apple Silicon host.)
-- macOS: `lo-runtime` resolves `LibreOffice.app/Contents/Frameworks`; the strip pipeline
+- macOS: works natively against an installed `LibreOffice.app` (`brew install --cask
+  libreoffice`, then `--lo-dir /Applications/LibreOffice.app` or `PPTX_PDF_LO_DIR`), verified
+  with LibreOffice 26.8 on Apple Silicon: ~3 s per conversion, dominated by per-run profile
+  creation and CoreText font enumeration. No embedded macOS tree yet — the strip pipeline
   needs a macOS variant of `trace.sh` (`fs_usage`/`dtrace` instead of `strace`).
 
 LibreOffice is MPL-2.0; the tree ships its libraries unmodified apart from a relocatable
