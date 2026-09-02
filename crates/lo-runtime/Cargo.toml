@@ -1,0 +1,26 @@
+[package]
+name = "lo-runtime"
+version = "0.1.0"
+description = "Locates or unpacks the bundled LibreOffice runtime tree and prepares a user profile"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+build = "build.rs"
+
+[features]
+# Embed a stripped LibreOffice tree (tar.zst at $PPTX_PDF_LO_TREE, set at build time)
+# and unpack it to the user's cache directory on first run.
+embedded = ["dep:tar", "dep:zstd"]
+
+[dependencies]
+tar = { workspace = true, optional = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+zstd = { workspace = true, optional = true }
+
+[build-dependencies]
+sha2 = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,5 @@
+# Proper nouns that doc_markdown would otherwise flag as unbackticked code.
+doc-valid-idents = ["LibreOffice", "LibreOfficeKit", "PowerPoint", "OpenSymbol", ".."]
+# Tests (unit and integration) may unwrap; the rule is "never panic on runtime input".
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true

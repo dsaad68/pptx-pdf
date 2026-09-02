@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "parallel-search-mcp": {
+      "type": "http",
+      "url": "https://search.parallel.ai/mcp-oauth"
+    },
+    "parallel-task-mcp": {
+      "type": "http",
+      "url": "https://task-mcp.parallel.ai/mcp"
+    },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+[package]
+name = "pptx-pdf"
+version = "0.1.0"
+description = "Convert PowerPoint decks to PDF with an embedded LibreOffice, no install required"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "pptx-pdf"
+path = "src/main.rs"
+
+[features]
+default = []
+# Carry the stripped LibreOffice tree inside the binary (see lo-runtime).
+embedded = ["lo-runtime/embedded"]
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+lo-runtime = { workspace = true }
+lok = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[lints]
+workspace = true

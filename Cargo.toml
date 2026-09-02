@@ -1,0 +1,55 @@
+[workspace]
+resolver = "3"
+members = ["crates/lok", "crates/lo-runtime", "crates/pptx-pdf"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.98"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/dsaad68/pptx-pdf"
+
+[workspace.dependencies]
+lok = { path = "crates/lok" }
+lo-runtime = { path = "crates/lo-runtime" }
+
+anyhow = "1.0"
+clap = { version = "4.5", default-features = false, features = ["std", "derive", "help", "usage", "error-context", "env"] }
+libloading = "0.8"
+sha2 = { version = "0.10", default-features = false }
+tar = { version = "0.4", default-features = false }
+thiserror = "2.0"
+tracing = { version = "0.1", default-features = false, features = ["std", "attributes"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "ansi"] }
+zstd = { version = "0.13", default-features = false }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unused_must_use = "deny"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "warn"
+todo = "deny"
+dbg_macro = "deny"
+indexing_slicing = "warn"
+ptr_arg = "deny"
+needless_pass_by_value = "warn"
+wildcard_enum_match_arm = "warn"
+wildcard_imports = "warn"
+await_holding_lock = "deny"
+await_holding_refcell_ref = "deny"
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
+inefficient_to_string = "warn"
+doc_markdown = "warn"
+must_use_candidate = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+
+[profile.release]
+strip = "debuginfo"
+lto = "thin"

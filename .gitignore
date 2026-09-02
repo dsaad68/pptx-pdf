@@ -1,0 +1,5 @@
+/target
+*.pdf
+/tools/lo-tree/out/
+/tools/lo-tree/corpus/
+/target-linux*

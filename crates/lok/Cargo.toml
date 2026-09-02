@@ -1,0 +1,16 @@
+[package]
+name = "lok"
+version = "0.1.0"
+description = "Safe, minimal binding to LibreOfficeKit for headless document conversion"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+libloading = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true
