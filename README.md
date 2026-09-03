@@ -43,6 +43,26 @@ interpreter. Details, uv variants and the error model are in [docs/python.md](do
 For agents, [skills/pptx-pdf/SKILL.md](skills/pptx-pdf/SKILL.md) describes the CLI in the
 Agent Skills format.
 
+## Results
+
+Measured on the release pipeline and an Apple Silicon laptop; the full story is in
+[docs/how-pptx-pdf-works.md](docs/how-pptx-pdf-works.md#3-results).
+
+| | Linux arm64 | Linux x86_64 | macOS arm64 |
+|---|---|---|---|
+| LibreOffice as installed | 199 MB | 199 MB | 804 MB |
+| self-contained binary | 62 MB | 64 MB | 80 MB |
+| slim binary / Python wheel | 4 MB / 2 MB | 4 MB / 2 MB | 4 MB / 1 MB |
+| cache after first run | 225 MB | 230 MB | 360 MB |
+| install (`curl \| sh`, 80 MB) | | | 44 s |
+| first run (unpack + first boot + convert) | 1.8 s | | 18 s |
+| every run after that, 6 slides | 0.28 s | | 2-3 s |
+
+Fidelity: pages rendered from the stripped tree are pixel-identical to the full LibreOffice
+install on Linux, and embed the same fonts on macOS. On a real 12-slide deck, stock
+`soffice --headless` on macOS silently substituted Linux Libertine for Lato; `pptx-pdf` embeds
+Lato, IBM Plex Mono and Caskaydia Cove, the deck's actual fonts.
+
 ## How it works
 
 The long version — why, the strip pipeline step by step, measured results and the license

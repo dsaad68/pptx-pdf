@@ -30,7 +30,7 @@ fi
 deck=tools/lo-tree/corpus/text_fonts.pptx; [ -f test.pptx ] && deck=test.pptx
 
 echo "== slim binary (SHA256SUMS lookup)"
-cargo build --release --locked --target-dir target-slim 2>&1 | tail -1
+cargo build -p pptx-pdf --release --locked --target-dir target-slim 2>&1 | tail -1
 ls -la target-slim/release/pptx-pdf | awk '{printf "  binary: %.1f MB\n", $5/1048576}'
 t0=$(date +%s); run env PPTX_PDF_CACHE_DIR="$work/cache" PPTX_PDF_LO_TREE_URL="$url" target-slim/release/pptx-pdf "$deck" -o "$work/a.pdf" -q; echo "  first run (download + unpack + convert): $(( $(date +%s) - t0 ))s"
 t0=$(date +%s); run env PPTX_PDF_CACHE_DIR="$work/cache" PPTX_PDF_LO_TREE_URL="$url" target-slim/release/pptx-pdf "$deck" -o "$work/b.pdf" -q; echo "  second run: $(( $(date +%s) - t0 ))s"

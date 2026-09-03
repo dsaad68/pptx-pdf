@@ -11,7 +11,7 @@ tree="$repo/tools/lo-tree/out/lo-tree-macos-$arch.tar.zst"; [ -f "$tree" ] || { 
 work=$repo/tools/lo-tree/out/macos/e2e; rm -rf "$work"; mkdir -p "$work/cache"
 
 echo "== build embedded CLI for macos/$arch"
-( cd "$repo" && PPTX_PDF_LO_TREE=$tree cargo build --release --locked --features embedded --target-dir "$repo/target-macos-embedded" 2>&1 | tail -1 )
+( cd "$repo" && PPTX_PDF_LO_TREE=$tree cargo build -p pptx-pdf --release --locked --features embedded --target-dir "$repo/target-macos-embedded" 2>&1 | tail -1 )
 bin=$repo/target-macos-embedded/release/pptx-pdf
 ls -la "$bin" | awk '{printf "  binary: %.1f MB\n", $5/1048576}'
 

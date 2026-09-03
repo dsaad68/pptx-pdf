@@ -66,7 +66,7 @@ for i in 1 2 3; do
 done; echo; chmod 755 "$ro"
 [ "$fails" -eq 0 ] || { echo "settle check failed; last output:"; tail -3 "$work/v-1.log"; exit 1; }
 echo "== verify: every corpus deck through the CLI, tree vs full bundle (pages, embedded fonts)"
-cli=$root/target/release/pptx-pdf; [ -x "$cli" ] || ( cd "$root" && cargo build --release -q )
+cli=$root/target/release/pptx-pdf; [ -x "$cli" ] || ( cd "$root" && cargo build -p pptx-pdf --release -q )
 for f in "$here"/../corpus/*.pptx; do b=$(basename "$f" .pptx)
   "$cli" "$f" -o "$work/base-$b.pdf" --lo-dir "$app" -q 2>/dev/null
   "$cli" "$f" -o "$work/strip-$b.pdf" --lo-dir "$tree" -q

@@ -36,7 +36,7 @@ jobs:
           sha=$(sha256sum tools/lo-tree/out/lo-tree-linux-${{ matrix.arch }}-portable.tar.zst | cut -d' ' -f1)
           echo "TREE_SHA=$sha" >> "$GITHUB_ENV"
           docker run --rm -v "$PWD":/src -w /src -e PPTX_PDF_LO_TREE_SHA256=$sha rust:1.98-slim \
-            bash -c "cargo build --release --locked --target-dir /src/target-linux-${{ matrix.arch }}-slim && chown -R $(id -u):$(id -g) /src/target-linux-${{ matrix.arch }}-slim"
+            bash -c "cargo build -p pptx-pdf --release --locked --target-dir /src/target-linux-${{ matrix.arch }}-slim && chown -R $(id -u):$(id -g) /src/target-linux-${{ matrix.arch }}-slim"
       - uses: actions/upload-artifact@v7
         with:
           name: pptx-pdf-${{ matrix.target }}
@@ -89,14 +89,14 @@ jobs:
           hdiutil detach -quiet /tmp/lo; rm lo.dmg
           /Applications/LibreOffice.app/Contents/MacOS/soffice --version
       - run: brew install zstd
-      - run: cargo build --release --locked
+      - run: cargo build -p pptx-pdf --release --locked
       - run: tools/lo-tree/macos/build.sh
       - run: tools/e2e-macos.sh
       - run: tools/e2e-slim.sh
       - run: |
           sha=$(shasum -a 256 tools/lo-tree/out/lo-tree-macos-arm64.tar.zst | cut -d' ' -f1)
           echo "TREE_SHA=$sha" >> "$GITHUB_ENV"
-          PPTX_PDF_LO_TREE_SHA256=$sha cargo build --release --locked --target-dir target-macos-slim
+          PPTX_PDF_LO_TREE_SHA256=$sha cargo build -p pptx-pdf --release --locked --target-dir target-macos-slim
       - uses: actions/upload-artifact@v7
         with:
           name: pptx-pdf-aarch64-apple-darwin

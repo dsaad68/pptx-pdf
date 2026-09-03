@@ -16,7 +16,7 @@ rm -rf "$work"; mkdir -p "$work/relocated/tree" "$work/pdf"
 
 echo "== build CLI for linux/$arch"
 docker run --rm --platform "$platform" -v "$repo":/src -v pptx-pdf-cargo-registry:/usr/local/cargo/registry -w /src \
-  rust:1.98-slim cargo build --release --locked --target-dir "/src/target-linux-$arch" 2>&1 | tail -2
+  rust:1.98-slim cargo build -p pptx-pdf --release --locked --target-dir "/src/target-linux-$arch" 2>&1 | tail -2
 
 echo "== unpack tree somewhere new"
 zstd -dc "$tree_tar" | tar -x -C "$work/relocated/tree"

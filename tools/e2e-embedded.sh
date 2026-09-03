@@ -15,7 +15,7 @@ rm -rf "$work"; mkdir -p "$work/pdf" "$work/cache"
 echo "== build embedded CLI for linux/$arch"
 docker run --rm --platform "$platform" -v "$repo":/src -v pptx-pdf-cargo-registry:/usr/local/cargo/registry -w /src \
   -e PPTX_PDF_LO_TREE="/src/$tree" \
-  rust:1.98-slim bash -c "cargo build --release --locked --features embedded --target-dir /src/target-linux-$arch-embedded && chown -R $(id -u):$(id -g) /src/target-linux-$arch-embedded" 2>&1 | tail -1
+  rust:1.98-slim bash -c "cargo build -p pptx-pdf --release --locked --features embedded --target-dir /src/target-linux-$arch-embedded && chown -R $(id -u):$(id -g) /src/target-linux-$arch-embedded" 2>&1 | tail -1
 ls -la "$repo/target-linux-$arch-embedded/release/pptx-pdf" | awk '{printf "  binary: %.1f MB\n", $5/1048576}'
 
 echo "== run in bare debian:trixie-slim (no LibreOffice, no fonts, no --lo-dir)"

@@ -37,7 +37,7 @@ host=$(uname -s)-$(uname -m)
 case "$host" in Darwin-arm64) tree=macos-arm64; target=aarch64-apple-darwin;; Linux-aarch64) tree=linux-arm64-portable; target=aarch64-unknown-linux-gnu;; Linux-x86_64) tree=linux-amd64-portable; target=x86_64-unknown-linux-gnu;; *) tree=""; esac
 if [ -n "$tree" ]; then
   sha=$(shasum -a 256 "$dist/lo-tree-$tree-$tag.tar.zst" | cut -d' ' -f1)
-  PPTX_PDF_LO_TREE_SHA256=$sha cargo build --release --locked --target-dir target-slim >/dev/null 2>&1
+  PPTX_PDF_LO_TREE_SHA256=$sha cargo build -p pptx-pdf --release --locked --target-dir target-slim >/dev/null 2>&1
   stage=$(mktemp -d); cp target-slim/release/pptx-pdf "$stage/"; cp LICENSE-MIT LICENSE-APACHE README.md "$stage/"
   tar -czf "$dist/pptx-pdf-slim-$tag-$target.tar.gz" -C "$stage" pptx-pdf LICENSE-MIT LICENSE-APACHE README.md; rm -rf "$stage"
   printf "  %-48s %6.1f MB\n" "pptx-pdf-slim-$tag-$target.tar.gz" "$(echo "$(stat -f %z "$dist/pptx-pdf-slim-$tag-$target.tar.gz" 2>/dev/null || stat -c %s "$dist/pptx-pdf-slim-$tag-$target.tar.gz")/1048576" | bc -l)"

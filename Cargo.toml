@@ -1,6 +1,9 @@
 [workspace]
 resolver = "3"
 members = ["crates/lok", "crates/lo-runtime", "crates/pptx-pdf", "crates/pptx-pdf-py"]
+# The Python extension is a cdylib that only links correctly under maturin (it needs
+# `-undefined dynamic_lookup` on macOS); plain `cargo build` at the root leaves it out.
+default-members = ["crates/lok", "crates/lo-runtime", "crates/pptx-pdf"]
 
 [workspace.package]
 edition = "2024"
