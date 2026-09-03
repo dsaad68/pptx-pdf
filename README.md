@@ -20,10 +20,10 @@ Prebuilt binaries for macOS (Apple Silicon), Linux arm64 and Linux x86_64 are on
 | LibreOffice | inside the binary, unpacked to the cache on first run | fetched from the release on first run (needs network once), verified against a hash pinned in the binary |
 | disk after first run | binary + cache | cache only |
 | `curl \| sh` | `curl -fsSL https://raw.githubusercontent.com/dsaad68/pptx-pdf/main/install.sh \| sh` | same, with `PPTX_PDF_SLIM=1 sh` |
-| cargo | `cargo binstall pptx-pdf` | `cargo install pptx-pdf` (builds from source) |
+| cargo | `cargo binstall --git https://github.com/dsaad68/pptx-pdf pptx-pdf` | `cargo install --git https://github.com/dsaad68/pptx-pdf pptx-pdf` (builds from source) |
 
 The installer verifies downloads against the release's `SHA256SUMS`; the slim binary verifies
-its tree the same way. `pptx-pdf --fetch` pre-downloads the tree, for images and CI caches.
+its tree the same way. (The crates are not on crates.io yet, hence `--git`.) `pptx-pdf --fetch` pre-downloads the tree, for images and CI caches.
 Both flavours keep the unpacked tree (225–360 MB) in the user cache directory
 (`~/Library/Caches/pptx-pdf` or `~/.cache/pptx-pdf`; `PPTX_PDF_CACHE_DIR` overrides).
 

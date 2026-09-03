@@ -52,7 +52,8 @@ Self-contained \`pptx-pdf\` binaries — LibreOffice's renderer built in, nothin
 \`\`\`
 curl -fsSL https://raw.githubusercontent.com/dsaad68/pptx-pdf/main/install.sh | sh                  # self-contained
 curl -fsSL https://raw.githubusercontent.com/dsaad68/pptx-pdf/main/install.sh | PPTX_PDF_SLIM=1 sh  # ~4 MB, fetches LibreOffice on first run
-cargo binstall pptx-pdf   # self-contained;   cargo install pptx-pdf   # slim, built from source
+cargo binstall --git https://github.com/dsaad68/pptx-pdf pptx-pdf   # self-contained
+cargo install  --git https://github.com/dsaad68/pptx-pdf pptx-pdf   # slim, built from source
 \`\`\`
 
 | asset | platform |

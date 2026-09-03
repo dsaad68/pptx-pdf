@@ -173,7 +173,7 @@ flowchart LR
   unpacked into the user cache on first run. One file, works offline.
 - **Slim**: a ~4 MB binary that downloads the same `tar.zst` from the GitHub release *of its
   own version* on first run. The tarball's SHA-256 is pinned into the binary at build time;
-  a `cargo install` from crates.io, which has no pin, verifies against the release's
+  a `cargo install --git`, which has no pin, verifies against the release's
   `SHA256SUMS` instead and remembers the resolved hash so later runs are offline.
 
 Both key the cache directory by the tarball's hash, so an embedded and a slim binary built
@@ -222,9 +222,9 @@ Measured on a residential connection (80 MB self-contained macOS binary):
 | step | time |
 |---|---|
 | `curl … install.sh \| sh` — download, verify SHA-256, extract | 44 s |
-| slim install (4 MB) | a few seconds |
+| slim install (4 MB) | 3 s |
 | first run, self-contained — unpack the tree, first LibreOffice boot, convert | 18 s (macOS), 1.8 s (Linux arm64) |
-| first run, slim — additionally download 82 MB | + download time |
+| first run, slim — download 79 MB from GitHub, unpack, first boot, convert | 63 s (macOS, same connection) |
 | `cargo binstall --git` | 98 s (clones the repo to read the manifest) |
 
 ### Conversion time
