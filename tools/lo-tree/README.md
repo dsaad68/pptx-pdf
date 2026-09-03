@@ -29,6 +29,29 @@ settle check (`dbg/harness2.c` with `X_SLEEP=5` and a read-only input) and the t
 suites — the portable and embedded suites run in a bare `debian:trixie-slim` with no
 LibreOffice, no fonts and none of its library dependencies installed.
 
+## macOS
+
+`macos/build.sh` applies the same method to an installed `LibreOffice.app` (official build,
+already `${ORIGIN}`-relative, so no rc patching). Differences: the trace is an in-process
+`DYLD_INSERT_LIBRARIES` interposer (`macos/fstrace.c`) merged with `DYLD_PRINT_LIBRARIES`
+output, because dyld maps dependencies with its own syscalls; fonts and icon themes are chosen
+by policy rather than trace (fontconfig opens every bundled font, the image tree probes every
+theme); the tarball is written with `COPYFILE_DISABLE=1` so no AppleDouble `._*` entries land
+in `registry/`, where configmgr would parse them. The tree keeps the bundle's
+`Contents/{Frameworks,Resources}` layout, which `lo-runtime` resolves.
+
+| | arm64 |
+|---|---|
+| `LibreOffice.app` as installed | 804 MB |
+| tree, unpacked (Frameworks 267 MB — `libmergedlo` alone is 137 MB — + Resources 71 MB) | 338 MB |
+| `lo-tree-macos-arm64.tar.zst` | **78 MB** |
+| `pptx-pdf` with it embedded | 80 MB |
+| first run (unpack + first LibreOffice boot) | ~11 s |
+| later runs | ~2 s |
+
+`../e2e-macos.sh` runs the embedded binary under `sandbox-exec` with `/Applications/LibreOffice.app`
+unreadable, on the corpus and on `test.pptx` if present.
+
 ## What survives the strip
 
 Traced: `program/libmergedlo.so` (79 MB, most of LibreOffice), `libsdlo.so` (Impress), the UNO

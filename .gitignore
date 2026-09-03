@@ -3,4 +3,7 @@
 /tools/lo-tree/out/
 /tools/lo-tree/corpus/
 /target-linux*
+/target-macos*
 /test.pptx
+/tools/lo-tree/macos/fstrace.dylib
+/tools/lo-tree/macos/harness2

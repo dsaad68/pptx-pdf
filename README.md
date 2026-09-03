@@ -48,7 +48,10 @@ substitutes (Carlito for Calibri, Liberation for Arial/Times/Courier, Caladea fo
 cargo build --release                       # needs --lo-dir or PPTX_PDF_LO_DIR at run time
 tools/lo-tree/build.sh                      # docker + uv + zstd, ~30 s after the first run
 PPTX_PDF_LO_TREE=tools/lo-tree/out/lo-tree-linux-arm64-portable.tar.zst \
-  cargo build --release --features embedded # self-contained 64 MB binary
+  cargo build --release --features embedded # self-contained 64 MB Linux binary
+tools/lo-tree/macos/build.sh                # from an installed LibreOffice.app, ~80 s
+PPTX_PDF_LO_TREE=tools/lo-tree/out/lo-tree-macos-arm64.tar.zst \
+  cargo build --release --features embedded # self-contained 80 MB macOS binary
 ```
 
 `tools/e2e-linux.sh` builds the CLI in a Rust container and runs it against the tree unpacked
@@ -61,11 +64,12 @@ with nothing installed, the latter with the single embedded binary and no `--lo-
 - Linux arm64 and x86_64: both trees built and verified end to end, including the embedded
   binary in a bare container. (`PPTX_PDF_ARCH=amd64 tools/lo-tree/build.sh` builds the x86_64
   tree under emulation on an Apple Silicon host.)
-- macOS: works natively against an installed `LibreOffice.app` (`brew install --cask
-  libreoffice`, then `--lo-dir /Applications/LibreOffice.app` or `PPTX_PDF_LO_DIR`), verified
-  with LibreOffice 26.8 on Apple Silicon: ~3 s per conversion, dominated by per-run profile
-  creation and CoreText font enumeration. No embedded macOS tree yet — the strip pipeline
-  needs a macOS variant of `trace.sh` (`fs_usage`/`dtrace` instead of `strace`).
+- macOS (Apple Silicon): self-contained binary built and verified with `LibreOffice.app`
+  hidden from the process — `tools/lo-tree/macos/build.sh` strips the official `.app`
+  (78 MB tree, 80 MB binary), `tools/e2e-macos.sh` proves it. Also runs against an installed
+  `LibreOffice.app` with `--lo-dir /Applications/LibreOffice.app`. Per-run cost is ~2-3 s
+  (LibreOffice profile creation and font enumeration each run) versus ~0.3 s on Linux.
+- Windows: LOK supports it and the library names are in place; untested.
 
 LibreOffice is MPL-2.0; the tree ships its libraries unmodified apart from a relocatable
 `fundamentalrc` and rpath patching, both reproducible from `tools/lo-tree`.
