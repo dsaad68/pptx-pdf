@@ -48,8 +48,9 @@ echo "== keep-list"
 ( cd "$app" && ls Contents/Resources/config/images_sukapura.zip Contents/Resources/config/images_colibre.zip 2>/dev/null ) >> "$work/keep.txt" || true
 # wholesale: lazily loaded UI, registry, presets, rc files, fontconfig bits
 ( cd "$app" && find Contents/Resources/config/soffice.cfg Contents/Resources/registry Contents/Resources/presets -type f; ls Contents/Resources/*rc | sed 's|^\./||' ) >> "$work/keep.txt"
-# fonts: the metric-compatible set only (system fonts come through the generated fonts.conf)
-( cd "$app" && ls Contents/Resources/fonts/truetype | grep -E '^(Liberation|Carlito|Caladea|DejaVu|opens___)' | sed 's|^|Contents/Resources/fonts/truetype/|' ) >> "$work/keep.txt"
+# fonts: the metric-compatible set plus Linux Libertine/Biolinum, LibreOffice's own fallback faces,
+# so a missing font falls back exactly as in the full bundle (system fonts come via fonts.conf)
+( cd "$app" && ls Contents/Resources/fonts/truetype | grep -E '^(Liberation|Carlito|Caladea|DejaVu|opens___|LinLibertine|LinBiolinum)' | sed 's|^|Contents/Resources/fonts/truetype/|' ) >> "$work/keep.txt"
 sort -u -o "$work/keep.txt" "$work/keep.txt"
 echo "   $(wc -l < "$work/keep.txt") files"
 
@@ -76,6 +77,7 @@ def info(p):
     return pages,fonts
 a,b=info(sys.argv[1]),info(sys.argv[2]); ok=a==b
 print(f"   {sys.argv[2].split('/')[-1]}: pages={b[0]} fonts_same={'yes' if a[1]==b[1] else 'NO'} pages_same={'yes' if a[0]==b[0] else 'NO'}")
+if a[1]!=b[1]: print(f"      bundle: {[f.decode() for f in a[1]]}\n      tree:   {[f.decode() for f in b[1]]}")
 sys.exit(0 if ok else 1)
 PY
 done
