@@ -3,7 +3,7 @@
 *September 2026*
 
 `pptx-pdf` turns a `.pptx` into a PDF from the command line. The renderer inside it is
-LibreOffice's — the same code that produces the PDF when you press *Export* in Impress — but
+LibreOffice's, the same code that produces the PDF when you press *Export* in Impress, but
 nobody who uses the tool installs LibreOffice. This post explains why we built it that way,
 how the pieces fit, what it costs in bytes and seconds, and why it is legally fine.
 
@@ -19,8 +19,8 @@ fonts and a dozen other things whose *appearance* is only defined by what PowerP
 them. Producing a PDF that looks like the deck means reimplementing that behaviour.
 
 Two renderers have done that work to a standard people accept: PowerPoint itself, and
-LibreOffice Impress. Everything else — HTML converters, "pure" libraries, cloud APIs that
-secretly run one of the two — either renders a subset or is one of them in disguise. For a
+LibreOffice Impress. Everything else (HTML converters, "pure" libraries, cloud APIs that
+secretly run one of the two) either renders a subset or is one of them in disguise. For a
 tool that has to run on a server, in CI, or inside an agent's sandbox, LibreOffice is the only
 option that is open source and headless.
 
@@ -50,8 +50,8 @@ fonts done right.
 
 ### What we did not do
 
-- **Compile LibreOffice.** A static, trimmed LibreOffice build is possible — iOS and WASM
-  ports do it — and costs hours per platform, tens of gigabytes of disk and a build machine
+- **Compile LibreOffice.** A static, trimmed LibreOffice build is possible; the iOS and WASM
+  ports do it. It costs hours per platform, tens of gigabytes of disk and a build machine
   with 64 GB of RAM for the link. That is a project, not a build step.
 - **Rewrite the renderer.** Pure-Rust "office" crates exist. Their own status pages say they
   are not at parity, and for PPTX the gap is exactly the hard part: themes, placeholder
@@ -79,7 +79,7 @@ flowchart LR
     CLI --> PDF([deck.pdf])
 ```
 
-### Step 1 — LibreOfficeKit instead of `soffice`
+### Step 1: LibreOfficeKit instead of `soffice`
 
 LibreOffice exposes a small, ABI-stable C API called
 [LibreOfficeKit](https://docs.libreoffice.org/libreofficekit.html) (LOK): `dlopen` one library,
@@ -89,12 +89,12 @@ No subprocess, no IPC, no start centre: the conversion runs inside our process.
 
 The `lok` crate wraps it in ~400 lines of Rust. The struct layouts are transcribed from
 `LibreOfficeKit.h` and pinned by a test on their byte offsets; the library is loaded with
-`libloading`; two constraints from LOK's own header are turned into types — one `Office` per
+`libloading`; two constraints from LOK's own header are turned into types: one `Office` per
 process ever (a process-wide flag) and single-threaded use (`!Send`). PDF options such as
 `--pages` and `--notes` become the JSON `FilterData` string LOK expects
 (`{"PageRange":{"type":"string","value":"2-5"}}`).
 
-### Step 2 — Find out which files a conversion needs
+### Step 2: Find out which files a conversion needs
 
 A LibreOffice install has ~2,100 files. We wanted the ~100 that matter, and we wanted the
 list to be *measured*, not guessed. So we trace:
@@ -115,7 +115,7 @@ flowchart TD
   LOK. Every successfully opened file, plus each path's symlink-resolved and lexically
   normalised spellings (Debian links `registry/main.xcd` into `/etc`), goes on the keep-list.
 - **macOS**: no `strace`, `fs_usage` needs root and `dtrace` is blocked by SIP. We use a
-  `DYLD_INSERT_LIBRARIES` interposer that logs `open`/`opendir`/`dlopen` in-process — and
+  `DYLD_INSERT_LIBRARIES` interposer that logs `open`/`opendir`/`dlopen` in-process, and
   merge in `DYLD_PRINT_LIBRARIES` output, because dyld maps dependent dylibs with its own
   syscalls that a libc interposer never sees.
 
@@ -123,13 +123,13 @@ Then everything not on the list is deleted from the install, the corpus is conve
 from what is left, and the outputs are compared to the originals: page counts, extracted text,
 and on Linux a pixel diff of every rendered page. The strip is accepted only if nothing changed.
 
-### Step 3 — The things a trace does not show you
+### Step 3: The things a trace does not show you
 
 Three lessons, each learned from a failure:
 
 **Deferred work.** After a document loads, LibreOffice's main-loop thread constructs the
-document frame as a *deferred* event: `scrollbars.ui`, `infobar.ui`, and — if the input file
-is read-only — `extrabutton.ui` for the "read-only" infobar. A harness that loads, saves and
+document frame as a *deferred* event: `scrollbars.ui`, `infobar.ui`, and, if the input file
+is read-only, `extrabutton.ui` for the "read-only" infobar. A harness that loads, saves and
 exits never triggers it, so those files were never traced, got stripped, and the CLI died
 with LibreOffice's "Unspecified Application Error"... only sometimes, only when the process
 lived long enough. The traced and verifying runs now *settle* for a few seconds after load and
@@ -144,10 +144,10 @@ and `share/registry` are kept wholesale. It costs 0.4 MB compressed.
 its cache, so a trace keeps all of them. Instead the tree carries a policy set: the
 metric-compatible substitutes (Liberation for Arial/Times/Courier, Carlito for Calibri,
 Caladea for Cambria), DejaVu, OpenSymbol for bullets, and Linux Libertine because that is
-what LibreOffice itself falls back to when a family is missing — so a deck with a missing font
+what LibreOffice itself falls back to when a family is missing, so a deck with a missing font
 renders *exactly* as it would with the full install.
 
-### Step 4 — Make the tree relocatable
+### Step 4: Make the tree relocatable
 
 Debian's `fundamentalrc` hardcodes `BRAND_BASE_DIR=file:///usr/lib/libreoffice`; we rewrite it
 to `${ORIGIN}/..`, the form TDF's own tarballs use. For a portable Linux variant the ~90 MB of
@@ -156,7 +156,7 @@ library gets an `$ORIGIN`-relative RUNPATH via `patchelf`, so nothing outside th
 needed except glibc. The macOS bundle is already `${ORIGIN}`-relative; its only trap was
 `tar` on macOS adding AppleDouble `._*` files that configmgr then tried to parse as `.xcd`.
 
-### Step 5 — Ship it two ways
+### Step 5: Ship it two ways
 
 ```mermaid
 flowchart LR
@@ -181,18 +181,18 @@ from the same tree share one unpacked copy, and a new release never collides wit
 Unpacking goes into a staging directory renamed into place only when complete, so two
 concurrent first runs cannot race each other into a half tree.
 
-### Step 6 — Fonts, profiles, and the per-run details
+### Step 6: Fonts, profiles, and the per-run details
 
 - `lo-runtime` writes a `fonts.conf` per run listing LibreOffice's own fonts, the platform's
-  system font directories, any `--font-dir`, and a cache directory — unless the tree ships an
+  system font directories, any `--font-dir`, and a cache directory, unless the tree ships an
   `etc/fonts` (the Linux trees do) or the user has set `FONTCONFIG_FILE`. This is what makes
   headless LibreOffice see the fonts a user has installed.
 - Each run gets a fresh user profile in the temp directory, removed on exit, so concurrent
   conversions never share LibreOffice's lock file.
 - The release pipeline (`tools/lo-tree`, `.github/workflows/release.yml`) rebuilds the trees
-  from the pinned upstream artefacts and runs every end-to-end suite — including the embedded
+  from the pinned upstream artefacts and runs every end-to-end suite before anything is published, including the embedded
   binary in a bare `debian:trixie-slim` and, on macOS, under `sandbox-exec` with
-  `/Applications/LibreOffice.app` made unreadable — before anything is published.
+  `/Applications/LibreOffice.app` made unreadable.
 
 ---
 
@@ -221,10 +221,10 @@ Measured on a residential connection (80 MB self-contained macOS binary):
 
 | step | time |
 |---|---|
-| `curl … install.sh \| sh` — download, verify SHA-256, extract | 44 s |
+| `curl … install.sh \| sh` (download, verify SHA-256, extract) | 44 s |
 | slim install (4 MB) | 3 s |
-| first run, self-contained — unpack the tree, first LibreOffice boot, convert | 18 s (macOS), 1.8 s (Linux arm64) |
-| first run, slim — download 79 MB from GitHub, unpack, first boot, convert | 63 s (macOS, same connection) |
+| first run, self-contained (unpack the tree, first LibreOffice boot, convert) | 18 s (macOS), 1.8 s (Linux arm64) |
+| first run, slim (download 79 MB from GitHub, unpack, first boot, convert) | 63 s (macOS, same connection) |
 | `cargo binstall --git` | 98 s (clones the repo to read the manifest) |
 
 ### Conversion time
@@ -235,12 +235,12 @@ deck with charts, icons and three font families:
 | | Linux arm64 | macOS arm64 |
 |---|---|---|
 | `pptx-pdf`, 6 slides | **0.28 s** | 2–3 s |
-| `pptx-pdf`, 12-slide real deck | — | 3 s |
-| `soffice --headless --convert-to pdf`, same deck, warm | — | 1.8 s |
+| `pptx-pdf`, 12-slide real deck | n/a | 3 s |
+| `soffice --headless --convert-to pdf`, same deck, warm | n/a | 1.8 s |
 
 LibreOffice boots in about 240 ms on Linux; on macOS the per-run profile creation and font
 enumeration dominate. `soffice` is quicker on the Mac because it reuses a persistent
-profile — and it produced the wrong fonts.
+profile, and it produced the wrong fonts.
 
 ### Fidelity
 
@@ -252,15 +252,15 @@ profile — and it produced the wrong fonts.
 
   | renderer | fonts embedded in the PDF |
   |---|---|
-  | `soffice --headless` (stock LibreOffice.app) | Linux Libertine G, Frank Ruhl Hofshi — *substituted* |
-  | `pptx-pdf` | Lato, IBM Plex Mono, Caskaydia Cove — *the deck's fonts* |
+  | `soffice --headless` (stock LibreOffice.app) | Linux Libertine G, Frank Ruhl Hofshi (*substituted*) |
+  | `pptx-pdf` | Lato, IBM Plex Mono, Caskaydia Cove (*the deck's fonts*) |
 
   Same renderer, same machine; the difference is the generated `fonts.conf`.
 
 ### Build cost
 
 Rebuilding a tree from the pinned upstream artefact takes ~30 s on Linux and ~80 s on macOS.
-A full release — three platforms, six binaries, every end-to-end suite — runs in about ten
+A full release (three platforms, six binaries, every end-to-end suite) runs in about ten
 minutes on GitHub Actions. Nothing compiles LibreOffice.
 
 ---
@@ -270,9 +270,9 @@ minutes on GitHub Actions. Nothing compiles LibreOffice.
 `pptx-pdf` redistributes LibreOffice binaries. Here is why that is allowed and what we do to
 comply. (Plain-language summary by engineers, not legal advice.)
 
-**What we redistribute.** A subset of the *unmodified* files from official LibreOffice builds
-— Debian's `libreoffice-impress-nogui` packages and The Document Foundation's macOS bundle —
-plus the fonts those builds bundle. We do not change LibreOffice's source code and we do not
+**What we redistribute.** A subset of the *unmodified* files from official LibreOffice builds,
+namely Debian's `libreoffice-impress-nogui` packages and The Document Foundation's macOS
+bundle, plus the fonts those builds bundle. We do not change LibreOffice's source code and we do not
 compile it. Two files are adjusted in the tree: the `fundamentalrc` text configuration
 (`BRAND_BASE_DIR` made relative) and, in the portable Linux variant, the RUNPATH entry of the
 ELF dynamic section so libraries find each other in a new directory. The scripts that produce
