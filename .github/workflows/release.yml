@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: false   # only used for `uv run --with python-pptx`; nothing to cache
       - run: sudo apt-get install -y -qq zstd
@@ -44,7 +44,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.98.0
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: false   # only used for `uv run --with python-pptx`; nothing to cache
       # Pinned LibreOffice from TDF's permanent archive: the Homebrew cask on runners can lag
