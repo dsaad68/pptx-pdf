@@ -43,9 +43,9 @@ in `registry/`, where configmgr would parse them. The tree keeps the bundle's
 | | arm64 |
 |---|---|
 | `LibreOffice.app` as installed | 804 MB |
-| tree, unpacked (Frameworks 267 MB — `libmergedlo` alone is 137 MB — + Resources 71 MB) | 338 MB |
-| `lo-tree-macos-arm64.tar.zst` | **78 MB** |
-| `pptx-pdf` with it embedded | 80 MB |
+| tree, unpacked (Frameworks 267 MB — `libmergedlo` alone is 137 MB — + Resources 90 MB) | 357 MB |
+| `lo-tree-macos-arm64.tar.zst` | **82 MB** |
+| `pptx-pdf` with it embedded | 84 MB |
 | first run (unpack + first LibreOffice boot) | ~11 s |
 | later runs | ~2 s |
 

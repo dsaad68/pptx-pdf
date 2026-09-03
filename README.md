@@ -79,7 +79,7 @@ with nothing installed, the latter with the single embedded binary and no `--lo-
   tree under emulation on an Apple Silicon host.)
 - macOS (Apple Silicon): self-contained binary built and verified with `LibreOffice.app`
   hidden from the process — `tools/lo-tree/macos/build.sh` strips the official `.app`
-  (78 MB tree, 80 MB binary), `tools/e2e-macos.sh` proves it. Also runs against an installed
+  (82 MB tree, 84 MB binary), `tools/e2e-macos.sh` proves it. Also runs against an installed
   `LibreOffice.app` with `--lo-dir /Applications/LibreOffice.app`. Per-run cost is ~2-3 s
   (LibreOffice profile creation and font enumeration each run) versus ~0.3 s on Linux.
 - Windows: LOK supports it and the library names are in place; untested.
