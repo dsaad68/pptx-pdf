@@ -41,6 +41,9 @@ docker run --rm --platform "$platform" \
       pptx-pdf /corpus/text_fonts.pptx -o /pdf/fontdir.pdf --font-dir /fonts -q
       echo "  fonts with --font-dir:"; pdffonts /pdf/fontdir.pdf | tail -n +3 | awk "{print \"    \" \$1}" | sort -u
     fi
+    t0=$(date +%s%3N); pptx-pdf /corpus/text_fonts.pptx --png /pdf/png -q; echo "  png, 6 slides at 150 dpi: $(( $(date +%s%3N) - t0 ))ms, $(ls /pdf/png | wc -l) files, $(file /pdf/png/slide-01.png | grep -o "[0-9]* x [0-9]*")"
+    pptx-pdf /corpus/hidden.pptx --png /pdf/png-hidden -q; echo "  hidden.pptx default: $(ls /pdf/png-hidden | tr "\n" " ")"
+    pptx-pdf /corpus/hidden.pptx --png /pdf/png-hidden-all --hidden -q; echo "  hidden.pptx --hidden: $(ls /pdf/png-hidden-all | tr "\n" " ")"
     echo "  error path (bad input):"; pptx-pdf /corpus/nope.pptx -o /pdf/x.pdf 2>&1 | head -1 || true
     printf "%s" "PK" > /pdf/garbage.pptx; echo "  error path (garbage file):"; pptx-pdf /pdf/garbage.pptx -o /pdf/g.pdf 2>&1 | head -2 || true
   '

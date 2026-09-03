@@ -112,3 +112,43 @@ fn converts_a_real_deck_when_a_runtime_is_configured() {
     );
     assert!(bytes.len() > 1000);
 }
+
+#[test]
+fn renders_png_files_when_a_runtime_is_configured() {
+    let (Some(lo_dir), Some(deck)) = (std::env::var_os(ENV_LO_DIR), std::env::var_os(ENV_DECK))
+    else {
+        eprintln!("skipped: set {ENV_LO_DIR} and {ENV_DECK} to run");
+        return;
+    };
+    let dir = scratch("png").join("out");
+    let out = bin()
+        .env(ENV_LO_DIR, lo_dir)
+        .arg(deck)
+        .arg("--png")
+        .arg(&dir)
+        .arg("--dpi")
+        .arg("72")
+        .arg("--pages")
+        .arg("1-2")
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let listed: Vec<String> = String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .map(str::to_owned)
+        .collect();
+    assert_eq!(
+        listed,
+        [
+            dir.join("slide-01.png").display().to_string(),
+            dir.join("slide-02.png").display().to_string()
+        ]
+    );
+    let bytes = std::fs::read(dir.join("slide-01.png")).unwrap();
+    assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"));
+    assert!(!dir.join("slide-03.png").exists());
+}

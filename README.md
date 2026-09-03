@@ -1,12 +1,14 @@
 # pptx-pdf
 
-Convert PowerPoint decks to PDF from the command line, with LibreOffice's renderer built in.
-Users install one binary; there is no LibreOffice to install, no Java, no `soffice` on PATH.
+Convert PowerPoint decks to PDF, or render slides to PNG, from the command line, with
+LibreOffice's renderer built in. Users install one binary; there is no LibreOffice to install,
+no Java, no `soffice` on PATH.
 
 ```
 pptx-pdf deck.pptx                    # -> deck.pdf
 pptx-pdf deck.pptx -o out/deck.pdf --pages 2-5 --notes
 pptx-pdf deck.pptx --font-dir ./brand-fonts
+pptx-pdf deck.pptx --png slides/ --dpi 150   # -> slides/slide-01.png, slide-02.png, ...
 ```
 
 ## Install
@@ -36,6 +38,7 @@ uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expand
 ```python
 import pptx_pdf
 pptx_pdf.convert("deck.pptx", pages="2-5", notes=True)
+pptx_pdf.render("deck.pptx", "slides/", dpi=150)   # one PNG per slide
 ```
 
 Same renderer, in-process, with an `isolated=True` mode that keeps LibreOffice in a warm child
@@ -92,6 +95,13 @@ install on Linux, and embed the same fonts on macOS. On a real 12-slide deck, st
 `soffice --headless` on macOS silently substituted Linux Libertine for Lato; `pptx-pdf` embeds
 Lato, IBM Plex Mono and Caskaydia Cove, the deck's actual fonts.
 
+PNG output (`--png`) paints each slide through LibreOffice's tile renderer, the code path
+Collabora Online draws with, so there is no PDF and no PDF rasteriser in between. It costs
+about the same as the PDF: the 12-slide deck at 150 dpi (2000x1125 px) takes 1.3 s on the
+Mac, cold process, where `pdftoppm` alone needs 1.7 s on top of the conversion. The pixels
+differ from `pdftoppm`'s rendering of our own PDF only at anti-aliased edges (RMSE 3-8 %,
+under 1 % of pixels off by more than 10 %).
+
 ## How it works
 
 The long version — why, the strip pipeline step by step, measured results and the license
@@ -142,7 +152,8 @@ PPTX_PDF_LO_TREE=tools/lo-tree/out/lo-tree-macos-arm64.tar.zst \
 ```
 
 `tools/e2e-linux.sh` builds the CLI in a Rust container and runs it against the tree unpacked
-at a path LibreOffice has never seen — page ranges, notes pages, `--font-dir`, error paths.
+at a path LibreOffice has never seen — page ranges, notes pages, `--font-dir`, PNG rendering
+with and without hidden slides, error paths.
 `tools/e2e-portable.sh` and `tools/e2e-embedded.sh` repeat that in a bare `debian:trixie-slim`
 with nothing installed, the latter with the single embedded binary and no `--lo-dir`.
 `tools/e2e-slim.sh` serves the tree from a local HTTP server and checks the slim binary's

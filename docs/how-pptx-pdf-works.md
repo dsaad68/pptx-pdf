@@ -197,6 +197,33 @@ concurrent first runs cannot race each other into a half tree.
   binary in a bare `debian:trixie-slim` and, on macOS, under `sandbox-exec` with
   `/Applications/LibreOffice.app` made unreadable.
 
+### Step 7: Slides as images, without a PDF in between
+
+The natural way to get a PNG of a slide is to rasterise the PDF, and `pdftoppm` or pdfium do
+that well. But it means a second rendering engine, a second font subsystem, and reinterpreting
+pixels LibreOffice already produced. LibreOfficeKit has a better route: the tile API that
+Collabora Online uses to draw documents in a browser. `paintTile` renders any rectangle of the
+current part, in twips, into a caller-supplied buffer of any pixel size, so one call per slide
+with the slide's full size and `twips / 1440 * dpi` pixels is a complete slide image at the
+requested resolution.
+
+Those members sit behind `LOK_USE_UNSTABLE_API` in the header, which is acceptable here: each
+binary pins one LibreOffice build, and the struct-prefix transcription in `crates/lok` is
+checked against the header's offsets at test time (the document class grows from four members
+to forty-three; `paintTile` is the eleventh). The sequence is `initializeForRendering`, then
+per slide `setPart`, `getDocumentSize`, `paintTile`, then a byte swap (LibreOffice hands back
+BGRA on both platforms) and a PNG encoder.
+
+Two things the experiment turned up. The tile painter draws the *editing* view, so automatic
+spell checking put red squiggles under a product name on one slide; the fix is one setting in
+the `initializeForRendering` arguments, `.uno:SpellOnline` off. And hidden slides, which the
+PDF export skips, come back from `getPartInfo` as `"visible": 0`, quoted as a string by
+LibreOffice 25.2 and bare by 25.8, so the reader accepts both. `saveAs` with a `png` format
+exists too, and is a dead end: it exports one slide at 1280x720 whatever part is current.
+
+The stripped trees needed no extra files for this: the tile renderer is the same code the PDF
+export draws through.
+
 ---
 
 ## 3. Results
@@ -281,6 +308,22 @@ the old cost.
 Both tools keep a user profile with LibreOffice's font cache; `pptx-pdf` reuses a persistent
 one under its cache directory (file-locked, with a per-run fallback when another conversion
 holds it), which is what makes repeated runs cheap.
+
+### PNG output
+
+Same machine, same 12-slide deck, one PNG per slide at 150 dpi (2000x1125 pixels), cold
+process:
+
+| | macOS arm64 | Linux arm64 (container) |
+|---|---|---|
+| `pptx-pdf --png` (boot, load, paint, encode) | 1.3 s | 1.1 s |
+| paint alone, all 12 slides | 0.45 s | 0.39 s |
+| PNG encode, all 12 slides | 0.2 s | 0.2 s |
+| `pdftoppm -r 150` on the PDF, for comparison | 1.7 s, after the 1.8 s conversion | |
+
+So a PNG of every slide costs about what the PDF costs, and half of what PDF-then-rasterise
+would. Against `pdftoppm`'s rendering of our own PDF the tiles differ by 3-8 % RMSE, with under
+1 % of pixels off by more than 10 %, all of it at anti-aliased edges (cairo versus poppler).
 
 ### Fidelity
 

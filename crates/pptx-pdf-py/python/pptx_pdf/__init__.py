@@ -30,6 +30,7 @@ __all__ = [
     "convert",
     "fetch",
     "libreoffice_version",
+    "render",
 ]
 
 _StrPath = "str | os.PathLike[str]"
@@ -107,6 +108,41 @@ def convert(
     return out
 
 
+def render(
+    input: _StrPath,
+    output_dir: _StrPath,
+    *,
+    dpi: int = 150,
+    pages: str | None = None,
+    hidden: bool = False,
+    font_dirs: Iterable[_StrPath] = (),
+    lo_dir: _StrPath | None = None,
+    isolated: bool = False,
+) -> list[Path]:
+    """Render ``input``'s slides as PNG files in ``output_dir`` and return their paths.
+
+    Files are named ``slide-01.png``, ``slide-02.png``, ... by position in the deck. ``dpi``
+    is pixels per inch of slide (a 16:9 slide at 150 dpi is 2000x1125). ``pages`` selects slide
+    numbers such as ``"1-3,5"``; ``hidden`` includes slides marked hidden, which the PDF export
+    never contains. The rendering is LibreOffice's own, the same as the PDF's, so no PDF
+    rasteriser is involved. Other arguments are as for :func:`convert`.
+    """
+    if isolated:
+        return _shared_isolated().render(
+            input, output_dir, dpi=dpi, pages=pages, hidden=hidden, font_dirs=font_dirs, lo_dir=lo_dir
+        )
+    paths = _native.render_py(
+        os.fspath(input),
+        os.fspath(output_dir),
+        dpi=dpi,
+        pages=pages,
+        hidden=hidden,
+        font_dirs=[os.fspath(d) for d in font_dirs],
+        lo_dir=os.fspath(lo_dir) if lo_dir else None,
+    )
+    return [Path(p) for p in paths]
+
+
 def _resolve_output(input: _StrPath, output: _StrPath | None) -> Path:
     return Path(output) if output is not None else Path(input).with_suffix(".pdf")
 
@@ -138,6 +174,7 @@ class Converter:
             return convert(input, output, pages=pages, notes=notes, font_dirs=font_dirs, lo_dir=lo_dir)
         out = _resolve_output(input, output)
         request = {
+            "op": "convert",
             "input": os.fspath(input),
             "output": os.fspath(out),
             "pages": pages,
@@ -147,6 +184,33 @@ class Converter:
         }
         self._request(request)
         return out
+
+    def render(
+        self,
+        input: _StrPath,
+        output_dir: _StrPath,
+        *,
+        dpi: int = 150,
+        pages: str | None = None,
+        hidden: bool = False,
+        font_dirs: Iterable[_StrPath] = (),
+        lo_dir: _StrPath | None = None,
+    ) -> list[Path]:
+        """As :func:`render`, in this converter's context."""
+        if not self.isolated:
+            return render(input, output_dir, dpi=dpi, pages=pages, hidden=hidden, font_dirs=font_dirs, lo_dir=lo_dir)
+        request = {
+            "op": "render",
+            "input": os.fspath(input),
+            "output_dir": os.fspath(output_dir),
+            "dpi": dpi,
+            "pages": pages,
+            "hidden": hidden,
+            "font_dirs": [os.fspath(d) for d in font_dirs],
+            "lo_dir": os.fspath(lo_dir) if lo_dir else None,
+        }
+        reply = self._request(request)
+        return [Path(p) for p in reply.get("paths", [])]
 
     def close(self) -> None:
         """Stop the child interpreter, if any."""
@@ -160,10 +224,10 @@ class Converter:
     def __exit__(self, *exc: object) -> None:
         self.close()
 
-    def _request(self, request: dict) -> None:
+    def _request(self, request: dict) -> dict:
         from ._worker import request as run_request
 
-        run_request(self._child, request)
+        return run_request(self._child, request)
 
 
 _isolated_singleton: Converter | None = None

@@ -5,7 +5,7 @@
 //! link-time dependency on LibreOffice and no C compiler involved.
 //!
 //! The surface is deliberately small: boot an [`Office`], load a [`Document`], call
-//! [`Document::save_as`]. Two constraints inherited from LOK itself are encoded in the types:
+//! [`Document::save_as`] or [`Document::render_slides`]. Two constraints inherited from LOK itself are encoded in the types:
 //!
 //! - **One [`Office`] per process, ever.** LOK's own header says a second instance is not
 //!   supported, not even after destroying the first. [`Office::load`] enforces this with a
@@ -21,11 +21,13 @@ mod error;
 pub mod ffi;
 mod office;
 mod pdf;
+mod render;
 
 pub use document::{Document, DocumentType};
 pub use error::Error;
 pub use office::Office;
 pub use pdf::{PageRange, PdfExportOptions};
+pub use render::{Raster, RenderOptions};
 
 /// Convenience alias for results in this crate.
 pub type Result<T, E = Error> = std::result::Result<T, E>;

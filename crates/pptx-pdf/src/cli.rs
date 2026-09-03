@@ -14,8 +14,22 @@ pub(crate) struct Cli {
     pub(crate) input: Option<PathBuf>,
 
     /// Where to write the PDF. Defaults to the input path with a .pdf extension.
-    #[arg(short, long, value_name = "FILE")]
+    #[arg(short, long, value_name = "FILE", conflicts_with = "png")]
     pub(crate) output: Option<PathBuf>,
+
+    /// Render slides as PNG files into this directory (slide-01.png, slide-02.png, ...)
+    /// instead of writing a PDF.
+    #[arg(long, value_name = "DIR", conflicts_with = "notes")]
+    pub(crate) png: Option<PathBuf>,
+
+    /// Resolution of the PNG files in pixels per inch of slide (a 16:9 slide at 150 dpi is
+    /// 2000x1125 pixels).
+    #[arg(long, value_name = "N", default_value_t = 150, requires = "png")]
+    pub(crate) dpi: u32,
+
+    /// Also render slides marked hidden in the deck (PNG only; the PDF never has them).
+    #[arg(long, requires = "png")]
+    pub(crate) hidden: bool,
 
     /// LibreOffice installation to use instead of the embedded or downloaded one.
     #[arg(long, value_name = "DIR", env = lo_runtime::ENV_LO_DIR)]
@@ -38,7 +52,7 @@ pub(crate) struct Cli {
     #[arg(long)]
     pub(crate) notes: bool,
 
-    /// Export only these slides, e.g. "1-3,5" or "4-".
+    /// Export only these slides, e.g. "1-3,5" or "4-". Numbers count slides in the deck.
     #[arg(long, value_name = "RANGE")]
     pub(crate) pages: Option<PageRange>,
 
@@ -76,6 +90,30 @@ mod tests {
         assert_eq!(cli.pages.as_ref().map(PageRange::as_str), Some("2-4"));
         assert!(cli.notes);
         assert_eq!(cli.verbose, 2);
+    }
+
+    #[test]
+    fn png_mode_flags() {
+        let cli = Cli::parse_from([
+            "pptx-pdf",
+            "deck.pptx",
+            "--png",
+            "out",
+            "--dpi",
+            "96",
+            "--hidden",
+        ]);
+        assert_eq!(cli.png.as_deref(), Some(std::path::Path::new("out")));
+        assert_eq!(cli.dpi, 96);
+        assert!(cli.hidden);
+        assert!(
+            Cli::try_parse_from(["pptx-pdf", "deck.pptx", "--dpi", "96"]).is_err(),
+            "--dpi needs --png"
+        );
+        assert!(Cli::try_parse_from(["pptx-pdf", "deck.pptx", "--png", "out", "--notes"]).is_err());
+        assert!(
+            Cli::try_parse_from(["pptx-pdf", "deck.pptx", "--png", "out", "-o", "x.pdf"]).is_err()
+        );
     }
 
     #[test]

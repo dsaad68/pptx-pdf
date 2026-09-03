@@ -45,14 +45,22 @@ import pptx_pdf
 pdf = pptx_pdf.convert("deck.pptx")                      # -> Path("deck.pdf")
 pptx_pdf.convert("deck.pptx", "out/deck.pdf", pages="2-5", notes=True, font_dirs=["./brand"])
 
+pngs = pptx_pdf.render("deck.pptx", "slides/", dpi=150)  # -> [Path("slides/slide-01.png"), ...]
+pptx_pdf.render("deck.pptx", "slides/", pages="2-5", hidden=True)  # hidden=True keeps hidden slides
+
 pptx_pdf.fetch()            # pre-download LibreOffice (~80 MB, once per version); good in Dockerfiles
 pptx_pdf.libreoffice_version()
 pptx_pdf.cache_dir()
 ```
 
-Errors: `FileNotFoundError` (missing input), `ValueError` (bad page range or font directory),
-`pptx_pdf.RuntimeUnavailable` (no tree found or fetched), `pptx_pdf.ConversionError`
-(LibreOffice rejected the document).
+`render` paints each slide with LibreOffice's own tile renderer (the same code path Collabora
+Online draws with), so the PNGs match the PDF without a PDF rasteriser in between. Files are
+numbered by position in the deck; `dpi` is pixels per inch of slide (a 16:9 slide at 150 dpi
+is 2000x1125). Slides marked hidden are skipped unless `hidden=True`, matching the PDF.
+
+Errors: `FileNotFoundError` (missing input), `ValueError` (bad page range, dpi or font
+directory), `pptx_pdf.RuntimeUnavailable` (no tree found or fetched),
+`pptx_pdf.ConversionError` (LibreOffice rejected the document).
 
 ## In-process vs isolated
 
@@ -67,6 +75,7 @@ For long-running services, use a child interpreter instead:
 with pptx_pdf.Converter(isolated=True) as conv:
     conv.convert("a.pptx", "a.pdf")
     conv.convert("b.pptx", "b.pdf")   # same warm child, no LibreOffice restart
+    conv.render("b.pptx", "b-slides/")
 
 pptx_pdf.convert("c.pptx", isolated=True)   # module-level shortcut, shared child
 ```

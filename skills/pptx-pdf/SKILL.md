@@ -1,6 +1,6 @@
 ---
 name: pptx-pdf
-description: Convert PowerPoint decks (.pptx, .ppt, .odp) to PDF with LibreOffice's renderer and no LibreOffice installation. Use when a task needs a faithful PDF of a presentation, page ranges or speaker notes included, on a machine, in CI or in a container.
+description: Convert PowerPoint decks (.pptx, .ppt, .odp) to PDF, or render slides to PNG images, with LibreOffice's renderer and no LibreOffice installation. Use when a task needs a faithful PDF of a presentation, page ranges or speaker notes included, or one image per slide, on a machine, in CI or in a container.
 ---
 
 # pptx-pdf
@@ -36,6 +36,20 @@ Success: exit 0 and the PDF path on stdout. Failure: non-zero exit, one `error: 
 stderr. Common causes: input is not a file; output directory missing; a file that is not a
 presentation ("failed to load document").
 
+## Render slides as images
+
+```bash
+pptx-pdf deck.pptx --png out/                # out/slide-01.png, slide-02.png, ... at 150 dpi
+pptx-pdf deck.pptx --png out/ --dpi 96       # 16:9 slide: 1280x720 px (150 dpi: 2000x1125)
+pptx-pdf deck.pptx --png out/ --pages 3      # one slide
+pptx-pdf deck.pptx --png out/ --hidden       # include slides marked hidden (the PDF never has them)
+```
+
+Same renderer as the PDF, no PDF in between, so this is the way to get a picture of a slide;
+do not convert to PDF and rasterise that. Success: exit 0 and one path per line on stdout,
+in slide order. Files are numbered by position in the deck, so with `--pages 3` the file is
+`slide-03.png`. The directory is created if missing.
+
 ## Verify the result
 
 ```bash
@@ -53,4 +67,4 @@ python3 -c "import re,sys; d=open(sys.argv[1],'rb').read(); print(len(re.findall
   or `PPTX_PDF_LO_DIR`.
 - Cache location: `~/Library/Caches/pptx-pdf` (macOS) or `~/.cache/pptx-pdf` (Linux);
   `PPTX_PDF_CACHE_DIR` overrides. Safe to delete; it is re-created on the next run.
-- Python: `uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.3`, then `pptx_pdf.convert("deck.pptx")`.
+- Python: `uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.3`, then `pptx_pdf.convert("deck.pptx")` or `pptx_pdf.render("deck.pptx", "out/")`.

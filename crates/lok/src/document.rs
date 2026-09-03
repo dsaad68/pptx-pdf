@@ -52,6 +52,7 @@ impl std::fmt::Display for DocumentType {
 pub struct Document<'o> {
     ptr: NonNull<ffi::LibreOfficeKitDocument>,
     office: &'o Office,
+    render: crate::render::RenderState,
 }
 
 impl std::fmt::Debug for Document<'_> {
@@ -70,7 +71,11 @@ impl<'o> Document<'o> {
         ptr: NonNull<ffi::LibreOfficeKitDocument>,
         office: &'o Office,
     ) -> Self {
-        Self { ptr, office }
+        Self {
+            ptr,
+            office,
+            render: crate::render::RenderState::default(),
+        }
     }
 
     /// The application that owns this document.
@@ -133,9 +138,21 @@ impl<'o> Document<'o> {
         self.save_as(url, "pdf", (!filter.is_empty()).then_some(filter.as_str()))
     }
 
-    fn class(&self) -> &ffi::LibreOfficeKitDocumentClass {
+    pub(crate) fn class(&self) -> &ffi::LibreOfficeKitDocumentClass {
         // SAFETY: `ptr` is a live document whose `p_class` is set for its lifetime.
         unsafe { &*(*self.ptr.as_ptr()).p_class }
+    }
+
+    pub(crate) fn raw(&self) -> *mut ffi::LibreOfficeKitDocument {
+        self.ptr.as_ptr()
+    }
+
+    pub(crate) fn office(&self) -> &Office {
+        self.office
+    }
+
+    pub(crate) fn render_state(&self) -> &crate::render::RenderState {
+        &self.render
     }
 }
 

@@ -26,6 +26,14 @@ t0=$(ms); run "$repo/tools/lo-tree/corpus/charts.pptx" -o "$work/third.pdf" -q; 
 run "$repo/tools/lo-tree/corpus/text_fonts.pptx" -o "$work/range.pdf" --pages 2-3 -q
 run "$repo/tools/lo-tree/corpus/text_fonts.pptx" -o "$work/fontdir.pdf" --font-dir "$repo/tools/lo-tree/out/fonts" -q 2>/dev/null || true
 [ -f "$repo/test.pptx" ] && run "$repo/test.pptx" -o "$work/test.pdf" -q
+echo "== png"
+t0=$(ms); run "$repo/tools/lo-tree/corpus/text_fonts.pptx" --png "$work/png" -q; echo "  6 slides at 150 dpi: $(( $(ms) - t0 ))ms, $(ls "$work/png" | wc -l | tr -d ' ') files, $(sips -g pixelWidth -g pixelHeight "$work/png/slide-01.png" | awk '/pixel/{printf "%s ", $2}')px"
+run "$repo/tools/lo-tree/corpus/hidden.pptx" --png "$work/png-hidden" -q; echo "  hidden.pptx default: $(ls "$work/png-hidden" | tr '\n' ' ')"
+run "$repo/tools/lo-tree/corpus/hidden.pptx" --png "$work/png-hidden-all" --hidden -q; echo "  hidden.pptx --hidden: $(ls "$work/png-hidden-all" | tr '\n' ' ')"
+if command -v pdftoppm >/dev/null && command -v magick >/dev/null; then
+  pdftoppm -r 150 -png "$work/first.pdf" "$work/png/ref" 2>/dev/null
+  echo "  vs pdftoppm of the PDF (RMSE, 0 = identical): $(magick compare -metric RMSE "$work/png/slide-01.png" "$work/png/ref-1.png" null: 2>&1 | sed 's/.*(\(.*\))/\1/')"
+fi
 echo "  cache: $(du -sh "$work/cache" | cut -f1)"
 python3 - "$work" <<'PY'
 import re,sys,os,glob

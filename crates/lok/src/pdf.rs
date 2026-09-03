@@ -49,6 +49,19 @@ impl PageRange {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    /// Whether 1-based `page` falls inside the range.
+    #[must_use]
+    pub fn contains(&self, page: u32) -> bool {
+        self.0.split(',').any(|part| match part.split_once('-') {
+            None => parse_page(part) == Some(page),
+            Some((start, "")) => parse_page(start).is_some_and(|s| page >= s),
+            Some((start, end)) => matches!(
+                (parse_page(start), parse_page(end)),
+                (Some(s), Some(e)) if (s..=e).contains(&page)
+            ),
+        })
+    }
 }
 
 fn parse_page(s: &str) -> Option<u32> {
@@ -183,6 +196,14 @@ mod tests {
                 "{r}"
             );
         }
+    }
+
+    #[test]
+    fn contains_checks_every_clause() {
+        let range = PageRange::new("1,3-4,7-").unwrap();
+        let hits: Vec<u32> = (1..=9).filter(|&p| range.contains(p)).collect();
+        assert_eq!(hits, [1, 3, 4, 7, 8, 9]);
+        assert!(!PageRange::new("2").unwrap().contains(1));
     }
 
     #[test]

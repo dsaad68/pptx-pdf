@@ -4,6 +4,7 @@
 import pptx_pdf
 
 pptx_pdf.convert("deck.pptx", "deck.pdf", pages="2-5", notes=True, font_dirs=["./brand"])
+pptx_pdf.render("deck.pptx", "slides/", dpi=150)   # -> [Path("slides/slide-01.png"), ...]
 pptx_pdf.fetch()   # pre-download LibreOffice (about 80 MB, once per version)
 ```
 

@@ -39,6 +39,29 @@ def test_pages_and_notes(deck, tmp_path):
     assert pages(pptx_pdf.convert(deck, tmp_path / "n.pdf", notes=True)) == 12
 
 
+def png_size(path: Path) -> tuple[int, int]:
+    head = path.read_bytes()[:24]
+    assert head.startswith(b"\x89PNG\r\n\x1a\n")
+    return int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
+
+
+@needs_lo
+def test_render_writes_one_png_per_slide(deck, tmp_path):
+    out = pptx_pdf.render(deck, tmp_path / "png", dpi=72)
+    assert [p.name for p in out] == [f"slide-{i:02d}.png" for i in range(1, 7)]
+    w, h = png_size(out[0])
+    assert w in (720, 960) and h in (405, 540, 720)  # 10x7.5 or 13.33x7.5 inch slide at 72 dpi
+    assert pptx_pdf.render(deck, tmp_path / "png2", pages="2,5-") == [
+        tmp_path / "png2" / n for n in ("slide-02.png", "slide-05.png", "slide-06.png")
+    ]
+
+
+@needs_lo
+def test_render_rejects_bad_dpi(deck, tmp_path):
+    with pytest.raises(ValueError):
+        pptx_pdf.render(deck, tmp_path / "x", dpi=0)
+
+
 @needs_lo
 def test_missing_input_raises_file_not_found(tmp_path):
     with pytest.raises(FileNotFoundError):
@@ -98,3 +121,5 @@ def test_isolated_converts_and_survives_a_crash(deck, tmp_path):
 @needs_lo
 def test_isolated_module_level(deck, tmp_path):
     assert pages(pptx_pdf.convert(deck, tmp_path / "iso.pdf", isolated=True)) == 6
+    out = pptx_pdf.render(deck, tmp_path / "iso-png", pages="1", isolated=True)
+    assert [p.name for p in out] == ["slide-01.png"] and out[0].is_file()

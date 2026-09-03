@@ -10,7 +10,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Mutex, OnceLock};
 
 use lo_runtime::{Locator, Profile, Runtime, file_url};
-use lok::{Document, Office, PageRange, PdfExportOptions};
+use lok::{Document, Office, PageRange, PdfExportOptions, RenderOptions};
 use pyo3::exceptions::{PyFileNotFoundError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 
@@ -34,6 +34,14 @@ enum Job {
         output: PathBuf,
         pages: Option<String>,
         notes: bool,
+        font_dirs: Vec<PathBuf>,
+    },
+    Render {
+        input: PathBuf,
+        output_dir: PathBuf,
+        dpi: u32,
+        pages: Option<String>,
+        hidden: bool,
         font_dirs: Vec<PathBuf>,
     },
     Fetch,
@@ -109,6 +117,21 @@ fn serve(rx: mpsc::Receiver<Request>) {
                         .map_err(|e| Failure::Input(e.to_string()))?;
                 }
                 convert(office, input, output, pages.as_deref(), *notes)
+            }),
+            Job::Render {
+                input,
+                output_dir,
+                dpi,
+                pages,
+                hidden,
+                font_dirs,
+            } => boot(&mut office).and_then(|(office, profile)| {
+                for dir in font_dirs {
+                    profile
+                        .add_fonts(dir)
+                        .map_err(|e| Failure::Input(e.to_string()))?;
+                }
+                render(office, input, output_dir, *dpi, pages.as_deref(), *hidden)
             }),
         };
         let _ = reply.send(result);
@@ -229,6 +252,50 @@ fn convert(
     Ok(output.display().to_string())
 }
 
+/// Render slides to PNG files; returns the written paths, one per line.
+fn render(
+    office: &Office,
+    input: &Path,
+    output_dir: &Path,
+    dpi: u32,
+    pages: Option<&str>,
+    hidden: bool,
+) -> Result<String, Failure> {
+    if !input.is_file() {
+        return Err(Failure::Input(format!(
+            "input {} is not a file",
+            input.display()
+        )));
+    }
+    let range = pages
+        .map(PageRange::new)
+        .transpose()
+        .map_err(|e| Failure::Input(e.to_string()))?;
+    std::fs::create_dir_all(output_dir).map_err(|e| {
+        Failure::Input(format!(
+            "creating output directory {}: {e}",
+            output_dir.display()
+        ))
+    })?;
+    let input_url = file_url(input).map_err(|e| Failure::Input(e.to_string()))?;
+    let document: Document<'_> = office
+        .load_document(&input_url)
+        .map_err(|e| Failure::Conversion(e.to_string()))?;
+    let options = RenderOptions::new().dpi(dpi).pages(range).hidden(hidden);
+    let written = document.render_slides(output_dir, &options).map_err(|e| {
+        if matches!(e, lok::Error::BadDpi(_)) {
+            Failure::Input(e.to_string())
+        } else {
+            Failure::Conversion(e.to_string())
+        }
+    })?;
+    Ok(written
+        .iter()
+        .map(|p| p.display().to_string())
+        .collect::<Vec<_>>()
+        .join("\n"))
+}
+
 /// Post a job and wait for it with the GIL released.
 fn run(py: Python<'_>, job: Job) -> PyResult<String> {
     let (reply, rx) = mpsc::channel();
@@ -290,6 +357,42 @@ fn convert_py(
     )
 }
 
+/// Render `input`'s slides as PNG files into `output_dir`; returns the paths written.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "mirrors the keyword arguments of the Python function"
+)]
+#[pyfunction]
+#[pyo3(signature = (input, output_dir, *, dpi=150, pages=None, hidden=false, font_dirs=vec![], lo_dir=None))]
+fn render_py(
+    py: Python<'_>,
+    input: PathBuf,
+    output_dir: PathBuf,
+    dpi: u32,
+    pages: Option<String>,
+    hidden: bool,
+    font_dirs: Vec<PathBuf>,
+    lo_dir: Option<PathBuf>,
+) -> PyResult<Vec<String>> {
+    set_boot(lo_dir, None);
+    let joined = run(
+        py,
+        Job::Render {
+            input,
+            output_dir,
+            dpi,
+            pages,
+            hidden,
+            font_dirs,
+        },
+    )?;
+    Ok(joined
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(str::to_owned)
+        .collect())
+}
+
 /// Make sure LibreOffice is available (download or unpack the tree) and started.
 #[pyfunction]
 #[pyo3(signature = (*, lo_dir=None, progress=None))]
@@ -332,6 +435,7 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
         m.py().get_type::<RuntimeUnavailable>(),
     )?;
     m.add_function(wrap_pyfunction!(convert_py, m)?)?;
+    m.add_function(wrap_pyfunction!(render_py, m)?)?;
     m.add_function(wrap_pyfunction!(fetch_py, m)?)?;
     m.add_function(wrap_pyfunction!(libreoffice_version, m)?)?;
     m.add_function(wrap_pyfunction!(cache_dir, m)?)?;

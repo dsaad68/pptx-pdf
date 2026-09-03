@@ -46,5 +46,14 @@ def chart_deck(path):
         s.shapes.add_chart(ct, Inches(1), Inches(1.5), Inches(8), Inches(5), cd)
     prs.save(path)
 
+def hidden_deck(path):
+    """Three slides; the second is marked hidden (skipped by PDF export and by PNG rendering unless asked)."""
+    prs = Presentation()
+    for i in range(3):
+        s = prs.slides.add_slide(prs.slide_layouts[5]); s.shapes.title.text = f"Slide {i+1}" + (" (hidden)" if i == 1 else "")
+        if i == 1: s._element.set("show", "0")
+    prs.save(path)
+
 text_deck("corpus/text_fonts.pptx"); shapes_deck("corpus/shapes_table_image.pptx"); chart_deck("corpus/charts.pptx")
+hidden_deck("corpus/hidden.pptx")
 print("corpus written")

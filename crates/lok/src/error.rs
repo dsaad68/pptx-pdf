@@ -51,4 +51,47 @@ pub enum Error {
     /// A page range string was not of the form LibreOffice accepts.
     #[error("invalid page range {0:?}: expected e.g. \"1-3,5\"")]
     InvalidPageRange(String),
+
+    /// A rendering call was made on a document that has no parts to render.
+    #[error("document has no slides to render")]
+    NoParts,
+
+    /// A part index past the end, or a slide size LibreOffice reports as empty.
+    #[error("slide {0} does not exist or has no size")]
+    BadPart(u32),
+
+    /// The requested resolution is outside the supported range.
+    #[error("dpi {0} is out of range (1..={max})", max = crate::render::MAX_DPI)]
+    BadDpi(u32),
+
+    /// The raster for a slide would exceed the size cap.
+    #[error("slide raster {width}x{height} exceeds the {max} pixel per side limit", max = crate::render::MAX_SIDE)]
+    RasterTooLarge {
+        /// Requested width in pixels.
+        width: u64,
+        /// Requested height in pixels.
+        height: u64,
+    },
+
+    /// A file could not be written.
+    #[error("{context} {path}: {source}")]
+    Io {
+        /// What was being done.
+        context: &'static str,
+        /// The file involved.
+        path: PathBuf,
+        /// Underlying error.
+        #[source]
+        source: std::io::Error,
+    },
+
+    /// PNG encoding failed.
+    #[error("encoding {path}: {source}")]
+    Png {
+        /// The file being written.
+        path: PathBuf,
+        /// Underlying error.
+        #[source]
+        source: png::EncodingError,
+    },
 }

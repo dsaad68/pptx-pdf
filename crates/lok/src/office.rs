@@ -157,7 +157,7 @@ impl Office {
     }
 
     /// Copy a library-allocated string and release it through `freeError`.
-    fn take_c_string(&self, raw: *mut c_char) -> Option<String> {
+    pub(crate) fn take_c_string(&self, raw: *mut c_char) -> Option<String> {
         if raw.is_null() {
             return None;
         }

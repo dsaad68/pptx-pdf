@@ -9,7 +9,7 @@
 //! Member order here must match the header exactly. The `abi_offsets` test pins the
 //! offsets LibreOffice's own `desktop/qa/desktop_lib/test_desktop_lib.cxx` asserts.
 
-use std::ffi::{c_char, c_int, c_void};
+use std::ffi::{c_char, c_int, c_long, c_uint, c_void};
 
 /// Opaque LOK instance; only `p_class` is visible.
 #[repr(C)]
@@ -104,7 +104,285 @@ pub struct LibreOfficeKitDocumentClass {
     /// One of the `LOK_DOCTYPE_*` values.
     pub get_document_type:
         Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument) -> c_int>,
+
+    // Everything below is behind `LOK_USE_UNSTABLE_API` in the header: LibreOffice reserves
+    // the right to change these between releases. Each binary of ours pins one LibreOffice
+    // build, and `abi_offsets_match_header` pins this transcription to that header.
+    /// Number of parts: slides in Impress, sheets in Calc.
+    pub get_parts: Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument) -> c_int>,
+    /// Page rectangles of a text document as a malloc'd string.
+    pub get_part_page_rectangles:
+        Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument) -> *mut c_char>,
+    /// Currently selected part.
+    pub get_part: Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument) -> c_int>,
+    /// Select a part; later rendering calls operate on it.
+    pub set_part: Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument, n_part: c_int)>,
+    /// Name of a part as a malloc'd string.
+    pub get_part_name: Option<
+        unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument, n_part: c_int) -> *mut c_char,
+    >,
+    /// `LOK_PARTMODE_*`: slides or notes.
+    pub set_part_mode:
+        Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument, n_mode: c_int)>,
+    /// Render a rectangle of the current part (twips) into a `canvas_width * canvas_height`
+    /// buffer of 4-byte pixels in the order [`Self::get_tile_mode`] reports.
+    pub paint_tile: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            p_buffer: *mut u8,
+            n_canvas_width: c_int,
+            n_canvas_height: c_int,
+            n_tile_pos_x: c_int,
+            n_tile_pos_y: c_int,
+            n_tile_width: c_int,
+            n_tile_height: c_int,
+        ),
+    >,
+    /// `LOK_TILEMODE_*`: the pixel order of [`Self::paint_tile`] buffers.
+    pub get_tile_mode: Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument) -> c_int>,
+    /// Size of the current part in twips.
+    pub get_document_size: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            p_width: *mut c_long,
+            p_height: *mut c_long,
+        ),
+    >,
+    /// Prepare the document for tiled rendering; takes a JSON object of `.uno:` settings.
+    pub initialize_for_rendering: Option<
+        unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument, p_arguments: *const c_char),
+    >,
+    /// Register a per-document callback.
+    pub register_callback: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            p_callback: LibreOfficeKitCallback,
+            p_data: *mut c_void,
+        ),
+    >,
+    /// Editing: keyboard input.
+    pub post_key_event: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_type: c_int,
+            n_char_code: c_int,
+            n_key_code: c_int,
+        ),
+    >,
+    /// Editing: mouse input.
+    pub post_mouse_event: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_type: c_int,
+            n_x: c_int,
+            n_y: c_int,
+            n_count: c_int,
+            n_buttons: c_int,
+            n_modifier: c_int,
+        ),
+    >,
+    /// Dispatch a `.uno:` command with JSON arguments.
+    pub post_uno_command: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            p_command: *const c_char,
+            p_arguments: *const c_char,
+            b_notify_when_finished: bool,
+        ),
+    >,
+    /// Editing: text selection.
+    pub set_text_selection: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_type: c_int,
+            n_x: c_int,
+            n_y: c_int,
+        ),
+    >,
+    /// Editing: selected text as a malloc'd string.
+    pub get_text_selection: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            p_mime_type: *const c_char,
+            p_used_mime_type: *mut *mut c_char,
+        ) -> *mut c_char,
+    >,
+    /// Editing: paste.
+    pub paste: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            p_mime_type: *const c_char,
+            p_data: *const c_char,
+            n_size: usize,
+        ) -> bool,
+    >,
+    /// Editing: graphic selection.
+    pub set_graphic_selection: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_type: c_int,
+            n_x: c_int,
+            n_y: c_int,
+        ),
+    >,
+    /// Editing: clear the selection.
+    pub reset_selection: Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument)>,
+    /// State of a `.uno:` command as a malloc'd JSON string.
+    pub get_command_values: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            p_command: *const c_char,
+        ) -> *mut c_char,
+    >,
+    /// Tell Calc the client's tile geometry.
+    pub set_client_zoom: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_tile_pixel_width: c_int,
+            n_tile_pixel_height: c_int,
+            n_tile_twip_width: c_int,
+            n_tile_twip_height: c_int,
+        ),
+    >,
+    /// Tell the document the client's visible area (twips).
+    pub set_client_visible_area: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_x: c_int,
+            n_y: c_int,
+            n_width: c_int,
+            n_height: c_int,
+        ),
+    >,
+    /// Views: create.
+    pub create_view: Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument) -> c_int>,
+    /// Views: destroy.
+    pub destroy_view:
+        Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument, n_id: c_int)>,
+    /// Views: select.
+    pub set_view: Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument, n_id: c_int)>,
+    /// Views: current.
+    pub get_view: Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument) -> c_int>,
+    /// Views: count.
+    pub get_views_count: Option<unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument) -> c_int>,
+    /// Render a font sample as a malloc'd pixel buffer.
+    pub render_font: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            p_font_name: *const c_char,
+            p_char: *const c_char,
+            p_font_width: *mut c_int,
+            p_font_height: *mut c_int,
+        ) -> *mut u8,
+    >,
+    /// Hash of a part as a malloc'd string.
+    pub get_part_hash: Option<
+        unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument, n_part: c_int) -> *mut c_char,
+    >,
+    /// [`Self::paint_tile`] for an explicit part and edit mode.
+    pub paint_part_tile: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            p_buffer: *mut u8,
+            n_part: c_int,
+            n_mode: c_int,
+            n_canvas_width: c_int,
+            n_canvas_height: c_int,
+            n_tile_pos_x: c_int,
+            n_tile_pos_y: c_int,
+            n_tile_width: c_int,
+            n_tile_height: c_int,
+        ),
+    >,
+    /// Views: ids.
+    pub get_view_ids: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            p_array: *mut c_int,
+            n_size: usize,
+        ) -> bool,
+    >,
+    /// Calc: outline state.
+    pub set_outline_state: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            b_column: bool,
+            n_level: c_int,
+            n_index: c_int,
+            b_hidden: bool,
+        ),
+    >,
+    /// Dialogs: paint a window.
+    pub paint_window: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_window_id: c_uint,
+            p_buffer: *mut u8,
+            x: c_int,
+            y: c_int,
+            width: c_int,
+            height: c_int,
+        ),
+    >,
+    /// Dialogs: post an action.
+    pub post_window: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_window_id: c_uint,
+            n_action: c_int,
+            p_data: *const c_char,
+        ),
+    >,
+    /// Dialogs: keyboard input.
+    pub post_window_key_event: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_window_id: c_uint,
+            n_type: c_int,
+            n_char_code: c_int,
+            n_key_code: c_int,
+        ),
+    >,
+    /// Dialogs: mouse input.
+    pub post_window_mouse_event: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_window_id: c_uint,
+            n_type: c_int,
+            n_x: c_int,
+            n_y: c_int,
+            n_count: c_int,
+            n_buttons: c_int,
+            n_modifier: c_int,
+        ),
+    >,
+    /// Views: UI language.
+    pub set_view_language: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_id: c_int,
+            language: *const c_char,
+        ),
+    >,
+    /// Dialogs: extended text input.
+    pub post_window_ext_text_input_event: Option<
+        unsafe extern "C" fn(
+            p_this: *mut LibreOfficeKitDocument,
+            n_window_id: c_uint,
+            n_type: c_int,
+            p_text: *const c_char,
+        ),
+    >,
+    /// JSON about a part (Impress: `visible`, `selected`, size, name) as a malloc'd string.
+    pub get_part_info: Option<
+        unsafe extern "C" fn(p_this: *mut LibreOfficeKitDocument, n_part: c_int) -> *mut c_char,
+    >,
 }
+
+/// `LibreOfficeKitTileMode`: pixels are `R,G,B,A` bytes.
+pub const LOK_TILEMODE_RGBA: c_int = 0;
+/// `LibreOfficeKitTileMode`: pixels are `B,G,R,A` bytes.
+pub const LOK_TILEMODE_BGRA: c_int = 1;
 
 /// `LibreOfficeKitDocumentType` from `LibreOfficeKitEnums.h`.
 pub const LOK_DOCTYPE_TEXT: c_int = 0;
@@ -172,6 +450,34 @@ mod tests {
             offset_of!(LibreOfficeKitDocumentClass, get_document_type),
             3 * PTR
         );
+        // Offsets observed with `offsetof` against the vendored header (tools/lo-tree/dbg/paint.c).
+        assert_eq!(offset_of!(LibreOfficeKitDocumentClass, get_parts), 4 * PTR);
+        assert_eq!(offset_of!(LibreOfficeKitDocumentClass, set_part), 7 * PTR);
+        assert_eq!(
+            offset_of!(LibreOfficeKitDocumentClass, paint_tile),
+            10 * PTR
+        );
+        assert_eq!(
+            offset_of!(LibreOfficeKitDocumentClass, get_tile_mode),
+            11 * PTR
+        );
+        assert_eq!(
+            offset_of!(LibreOfficeKitDocumentClass, get_document_size),
+            12 * PTR
+        );
+        assert_eq!(
+            offset_of!(LibreOfficeKitDocumentClass, initialize_for_rendering),
+            13 * PTR
+        );
+        assert_eq!(
+            offset_of!(LibreOfficeKitDocumentClass, paint_part_tile),
+            33 * PTR
+        );
+        assert_eq!(
+            offset_of!(LibreOfficeKitDocumentClass, get_part_info),
+            42 * PTR
+        );
+        assert_eq!(size_of::<LibreOfficeKitDocumentClass>(), 43 * PTR);
     }
 
     #[test]

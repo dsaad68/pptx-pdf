@@ -11,7 +11,7 @@ use std::time::Instant;
 use anyhow::{Context as _, bail};
 use clap::Parser as _;
 use lo_runtime::{FontPolicy, Locator, Profile, file_url};
-use lok::{DocumentType, Office, PdfExportOptions};
+use lok::{DocumentType, Office, PdfExportOptions, RenderOptions};
 
 use crate::cli::Cli;
 
@@ -49,7 +49,10 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
         bail!("input {} is not a file", input.display());
     }
     let output = cli.output.clone().unwrap_or_else(|| default_output(input));
-    if let Some(parent) = output.parent().filter(|p| !p.as_os_str().is_empty())
+    if let Some(dir) = &cli.png {
+        std::fs::create_dir_all(dir)
+            .with_context(|| format!("creating output directory {}", dir.display()))?;
+    } else if let Some(parent) = output.parent().filter(|p| !p.as_os_str().is_empty())
         && !parent.is_dir()
     {
         bail!("output directory {} does not exist", parent.display());
@@ -98,7 +101,6 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
     );
 
     let input_url = file_url(input).context("building input URL")?;
-    let output_url = file_url(&output).context("building output URL")?;
     let document = office
         .load_document(&input_url)
         .with_context(|| format!("opening {}", input.display()))?;
@@ -107,21 +109,39 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
         tracing::warn!(%kind, "input is not a presentation; exporting anyway");
     }
 
-    let options = PdfExportOptions::new()
-        .notes_pages(cli.notes)
-        .page_range(cli.pages.clone());
-    document
-        .export_pdf(&output_url, &options)
-        .with_context(|| format!("writing {}", output.display()))?;
-    tracing::info!(elapsed_ms = started.elapsed().as_millis(), "done");
+    let written = if let Some(dir) = &cli.png {
+        let options = RenderOptions::new()
+            .dpi(cli.dpi)
+            .pages(cli.pages.clone())
+            .hidden(cli.hidden);
+        document
+            .render_slides(dir, &options)
+            .with_context(|| format!("rendering into {}", dir.display()))?
+    } else {
+        let output_url = file_url(&output).context("building output URL")?;
+        let options = PdfExportOptions::new()
+            .notes_pages(cli.notes)
+            .page_range(cli.pages.clone());
+        document
+            .export_pdf(&output_url, &options)
+            .with_context(|| format!("writing {}", output.display()))?;
+        vec![output]
+    };
+    tracing::info!(
+        elapsed_ms = started.elapsed().as_millis(),
+        files = written.len(),
+        "done"
+    );
 
     if !cli.quiet {
         // Piping into `head` may close stdout early; that is not an error for a converter.
         let mut stdout = io::stdout().lock();
-        if let Err(e) = writeln!(stdout, "{}", output.display())
-            && e.kind() != io::ErrorKind::BrokenPipe
-        {
-            return Err(e).context("writing to stdout");
+        for path in &written {
+            if let Err(e) = writeln!(stdout, "{}", path.display())
+                && e.kind() != io::ErrorKind::BrokenPipe
+            {
+                return Err(e).context("writing to stdout");
+            }
         }
     }
     Ok(())

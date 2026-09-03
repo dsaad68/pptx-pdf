@@ -51,7 +51,7 @@ class Child:
         return json.loads(line)
 
 
-def request(child_slot: list, request: dict[str, Any]) -> None:
+def request(child_slot: list, request: dict[str, Any]) -> dict[str, Any]:
     """Run a request on the child in ``child_slot[0]``, restarting it once if it has died.
 
     A child that died while idle, or during this very request, is replaced and the request
@@ -72,7 +72,7 @@ def request(child_slot: list, request: dict[str, Any]) -> None:
         if attempt == 2:
             raise ConversionError("LibreOffice worker process died twice on this document")
     if reply.get("ok"):
-        return
+        return reply
     kind, message = reply.get("error", "ConversionError"), reply.get("message", "")
     exc = {
         "FileNotFoundError": FileNotFoundError,
@@ -88,15 +88,27 @@ def _serve() -> None:
     for line in sys.stdin:
         try:
             req = json.loads(line)
-            _native.convert_py(
-                req["input"],
-                req["output"],
-                pages=req.get("pages"),
-                notes=bool(req.get("notes", False)),
-                font_dirs=list(req.get("font_dirs", [])),
-                lo_dir=req.get("lo_dir"),
-            )
-            reply = {"ok": True}
+            if req.get("op", "convert") == "render":
+                paths = _native.render_py(
+                    req["input"],
+                    req["output_dir"],
+                    dpi=int(req.get("dpi", 150)),
+                    pages=req.get("pages"),
+                    hidden=bool(req.get("hidden", False)),
+                    font_dirs=list(req.get("font_dirs", [])),
+                    lo_dir=req.get("lo_dir"),
+                )
+                reply = {"ok": True, "paths": paths}
+            else:
+                _native.convert_py(
+                    req["input"],
+                    req["output"],
+                    pages=req.get("pages"),
+                    notes=bool(req.get("notes", False)),
+                    font_dirs=list(req.get("font_dirs", [])),
+                    lo_dir=req.get("lo_dir"),
+                )
+                reply = {"ok": True}
         except Exception as e:  # noqa: BLE001 - everything crosses the pipe as a reply
             reply = {"ok": False, "error": type(e).__name__, "message": str(e)}
         sys.stdout.write(json.dumps(reply) + "\n")
