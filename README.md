@@ -32,7 +32,7 @@ Both flavours keep the unpacked tree (225–360 MB) in the user cache directory
 ## Python
 
 ```bash
-uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.3
+uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v1.0.0
 ```
 
 ```python
@@ -168,8 +168,9 @@ macOS equivalent of the embedded check.
 - macOS (Apple Silicon): self-contained binary built and verified with `LibreOffice.app`
   hidden from the process — `tools/lo-tree/macos/build.sh` strips the official `.app`
   (82 MB tree, 84 MB binary), `tools/e2e-macos.sh` proves it. Also runs against an installed
-  `LibreOffice.app` with `--lo-dir /Applications/LibreOffice.app`. Per-run cost is ~2-3 s
-  (LibreOffice profile creation and font enumeration each run) versus ~0.3 s on Linux.
+  `LibreOffice.app` with `--lo-dir /Applications/LibreOffice.app`. Per-run cost is ~0.6-1 s
+  for a small deck versus ~0.2-0.3 s on Linux (see Results).
+- PNG output (`--png`, `pptx_pdf.render`) verified on both platforms, including hidden slides.
 - Windows: LOK supports it and the library names are in place; untested.
 
 LibreOffice is MPL-2.0; the tree ships its libraries unmodified apart from a relocatable

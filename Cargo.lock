@@ -373,7 +373,7 @@ dependencies = [
 
 [[package]]
 name = "lo-runtime"
-version = "0.2.3"
+version = "1.0.0"
 dependencies = [
  "sha2",
  "tar",
@@ -495,7 +495,7 @@ checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
 
 [[package]]
 name = "pptx-pdf"
-version = "0.2.3"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -508,7 +508,7 @@ dependencies = [
 
 [[package]]
 name = "pptx-pdf-py"
-version = "0.2.3"
+version = "1.0.0"
 dependencies = [
  "lo-runtime",
  "lok",

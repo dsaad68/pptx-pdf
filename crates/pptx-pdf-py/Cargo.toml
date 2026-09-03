@@ -1,6 +1,6 @@
 [package]
 name = "pptx-pdf-py"
-version = "0.2.3"
+version = "1.0.0"
 description = "Python binding for pptx-pdf: PowerPoint to PDF with LibreOffice's renderer, no install"
 edition.workspace = true
 rust-version.workspace = true
