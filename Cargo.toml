@@ -24,6 +24,7 @@ thiserror = "2.0"
 tracing = { version = "0.1", default-features = false, features = ["std", "attributes"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "ansi"] }
 zstd = { version = "0.13", default-features = false }
+zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
 ureq = { version = "3.4", default-features = false, features = ["rustls"] }
 indicatif = { version = "0.17", default-features = false }
 pyo3 = { version = "0.29", features = ["abi3-py39", "extension-module"] }

@@ -27,6 +27,7 @@ pptx-pdf deck.pptx -o out/deck.pdf          # output path (directory must exist)
 pptx-pdf deck.pptx --pages 2-5              # slides 2 to 5; also "1,3,5-" style ranges
 pptx-pdf deck.pptx --notes                  # append notes pages (slide + speaker notes)
 pptx-pdf deck.pptx --font-dir ./fonts       # extra .ttf/.otf for this run (repeatable)
+pptx-pdf deck.pptx --all-fonts              # let LibreOffice see every installed font (slower start)
 pptx-pdf deck.pptx -q                       # nothing on stdout; errors still on stderr
 ```
 
@@ -44,11 +45,11 @@ python3 -c "import re,sys; d=open(sys.argv[1],'rb').read(); print(len(re.findall
 
 ## Notes for agents
 
-- Conversion is ~0.3 s on Linux and 2-3 s on macOS per deck after the first run. Run decks
+- Conversion is ~0.2-1.5 s on Linux and ~0.6-2 s on macOS per deck after the first run, deck-size dependent. Run decks
   sequentially; each invocation is an independent process.
 - No network is needed after the first run (slim variant) or at all (self-contained variant).
 - Existing LibreOffice can be used instead of the bundled tree: `--lo-dir /path/to/LibreOffice`
   or `PPTX_PDF_LO_DIR`.
 - Cache location: `~/Library/Caches/pptx-pdf` (macOS) or `~/.cache/pptx-pdf` (Linux);
   `PPTX_PDF_CACHE_DIR` overrides. Safe to delete; it is re-created on the next run.
-- Python: `uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.2`, then `pptx_pdf.convert("deck.pptx")`.
+- Python: `uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.3`, then `pptx_pdf.convert("deck.pptx")`.

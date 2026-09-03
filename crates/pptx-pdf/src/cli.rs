@@ -42,6 +42,11 @@ pub(crate) struct Cli {
     #[arg(long, value_name = "RANGE")]
     pub(crate) pages: Option<PageRange>,
 
+    /// Let LibreOffice see every installed font instead of only the families the deck uses
+    /// (slower start; try it if a fallback glyph for an unusual script looks wrong).
+    #[arg(long)]
+    pub(crate) all_fonts: bool,
+
     /// Directory of extra .ttf/.otf fonts to make available for this conversion. Repeatable.
     #[arg(long, value_name = "DIR")]
     pub(crate) font_dir: Vec<PathBuf>,

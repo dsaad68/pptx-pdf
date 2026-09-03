@@ -17,6 +17,7 @@
 //! with `program/` and `share/`, a Debian `/usr/lib/libreoffice`, or a macOS `.app` bundle.
 
 pub mod cache;
+pub mod deckfonts;
 #[cfg(feature = "download")]
 mod download;
 #[cfg(feature = "embedded")]
@@ -32,7 +33,7 @@ mod url;
 #[cfg(feature = "download")]
 pub use download::{Progress, TreeSource, fetch, platform_asset};
 pub use error::Error;
-pub use fontconfig::FontConfig;
+pub use fontconfig::{FontConfig, FontPolicy};
 pub use locate::{ENV_LO_DIR, Locator, Runtime};
 pub use profile::Profile;
 pub use url::file_url;

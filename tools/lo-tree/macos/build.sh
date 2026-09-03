@@ -44,6 +44,10 @@ echo "== keep-list"
 { grep '^o ' "$log" | cut -c3-; grep -ohE "$app/[^[:space:]]+" "$work"/dyld-*.log; } | grep "^$app/" | sed -E 's|/[^/]+/\.\./|/|g' | sort -u \
   | grep -vE '/Resources/fonts/|/Resources/config/images_' \
   | while read -r p; do [ -f "$p" ] && echo "${p#$app/}" || true; done > "$work/keep.txt"
+# LibreOffice's embedded Python is never needed for conversion, and inside a Python host
+# process (the pptx_pdf binding) initialising it collides with the host interpreter and
+# aborts LibreOffice on the second start. Leave every Python component out.
+grep -vE 'LibreOfficePython\.framework|libpythonloaderlo\.dylib|services/(pyuno|scriptproviderforpython)\.rdb|Resources/python|pythonloader\.unorc|__pycache__|/pythonpath/|\.pyc?$' "$work/keep.txt" > "$work/keep.nopy" && mv "$work/keep.nopy" "$work/keep.txt"
 # icon themes: sukapura is the macOS default, colibre the fallback
 ( cd "$app" && ls Contents/Resources/config/images_sukapura.zip Contents/Resources/config/images_colibre.zip 2>/dev/null ) >> "$work/keep.txt" || true
 # wholesale: lazily loaded UI, registry, presets, rc files, fontconfig bits

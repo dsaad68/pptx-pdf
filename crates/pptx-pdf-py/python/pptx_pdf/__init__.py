@@ -8,6 +8,7 @@ LibreOffice into a child interpreter that stays warm between calls, so a crash t
 
 from __future__ import annotations
 
+import atexit
 import os
 import sys
 from collections.abc import Callable, Iterable
@@ -15,6 +16,10 @@ from pathlib import Path
 
 from . import _native
 from ._native import ConversionError, RuntimeUnavailable, __version__
+
+# LibreOffice keeps recovery state and a lock in its profile until it is destroyed; do that
+# before the interpreter goes away so the persistent profile is clean for the next process.
+atexit.register(_native.shutdown)
 
 __all__ = [
     "ConversionError",

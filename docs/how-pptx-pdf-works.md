@@ -237,19 +237,30 @@ macOS). Two decks: the 6-slide corpus deck (text, shapes, a table, a chart) and 
 
 | deck | Linux: `soffice` cold | Linux: `pptx-pdf` | macOS: `soffice` cold | macOS: `pptx-pdf` |
 |---|---|---|---|---|
-| 6 slides | 0.30-0.35 s | **0.18 s** | 0.6-0.9 s | 1.3-1.6 s |
-| 12 slides | 1.5-1.9 s | **1.4-1.5 s** | 2.0-2.2 s | 2.6 s |
+| 6 slides | 0.30-0.35 s | **0.18 s** | 0.6-0.9 s | **0.6-0.7 s** |
+| 12 slides | 1.5-1.9 s | **1.4-1.5 s** | 2.0-2.2 s | **1.7-1.8 s** |
 
 Linux: LibreOfficeKit boots in about 0.24 s against `soffice`'s ~0.3 s, and on the heavy deck
 rendering dominates either way, so `pptx-pdf` is a little faster and never slower.
 
-macOS: `pptx-pdf` is slower, by roughly 0.6 s on either deck, and the reason is the fonts.
-With the generated `fonts.conf`, fontconfig enumerates the 700+ font files under
-`/System/Library/Fonts`, `/Library/Fonts` and `~/Library/Fonts` on every start. `soffice
---headless` never does; it sees only the 128 fonts inside the bundle, which is why it is quick
-and why it rendered the 12-slide deck in the wrong typefaces (below). Pointing `pptx-pdf` at a
-bundled-only fontconfig brings it to 1.9-2.1 s on that deck, level with `soffice`. We chose
-correct fonts over the half second.
+macOS took two rounds to get here, and the story is the fonts. LibreOffice's headless font
+manager opens and inspects every font fontconfig reports, about a millisecond each. The first
+version of `pptx-pdf` let it see all 700+ font files under `/System/Library/Fonts`,
+`/Library/Fonts` and `~/Library/Fonts`, and booted in ~1 s, roughly 0.6 s behind `soffice`,
+which is quick precisely because it only ever sees the 128 fonts in its bundle (and so
+rendered the 12-slide deck in the wrong typefaces, below).
+
+The fix reads the deck: every `typeface="…"` attribute in its XML names a family, and the
+text's characters say which scripts need fallback glyphs. The generated `fonts.conf` then
+rejects everything and accepts only those families, the metric-compatible substitutes,
+LibreOffice's fallback faces, every file passed with `--font-dir`, and any font covering the
+deck's scripts (a `lang` pattern, so a Japanese line still finds Hiragino). One fontconfig
+subtlety cost an afternoon: globs and patterns are evaluated in separate passes, so a
+reject-*glob* can never be overridden by a family *pattern*; the reject has to be the empty
+pattern. With that, LibreOffice boots in ~230 ms on the same Mac and the deck's fonts are the
+ones embedded. What the filter changes is only how a *missing* style or family is
+substituted, from the full pool to the accepted one; `--all-fonts` restores the full pool at
+the old cost.
 
 Both tools keep a user profile with LibreOffice's font cache; `pptx-pdf` reuses a persistent
 one under its cache directory (file-locked, with a per-run fallback when another conversion

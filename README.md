@@ -30,7 +30,7 @@ Both flavours keep the unpacked tree (225–360 MB) in the user cache directory
 ## Python
 
 ```bash
-uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.2
+uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.3
 ```
 
 ```python
@@ -63,15 +63,16 @@ platform:
 
 | deck | Linux: `soffice` cold | Linux: `pptx-pdf` | macOS: `soffice` cold | macOS: `pptx-pdf` |
 |---|---|---|---|---|
-| 6 slides, text and shapes | 0.30-0.35 s | **0.18 s** | 0.6-0.9 s | 1.3-1.6 s |
-| 12 slides, images and icons, 5.6 MB | 1.5-1.9 s | **1.4-1.5 s** | 2.0-2.2 s | 2.6 s |
+| 6 slides, text and shapes | 0.30-0.35 s | **0.18 s** | 0.6-0.9 s | **0.6-0.7 s** |
+| 12 slides, images and icons, 5.6 MB | 1.5-1.9 s | **1.4-1.5 s** | 2.0-2.2 s | **1.7-1.8 s** |
 
-On Linux the difference is startup: LibreOfficeKit boots in ~0.24 s where `soffice` needs
-~0.3 s, and rendering dominates on heavy decks. On macOS `pptx-pdf` is slower, and that is the
-cost of seeing the machine's fonts: fontconfig enumerates 700+ system font files each start
-(~0.6 s here), while `soffice --headless` never looks beyond the 128 fonts it bundles and
-substitutes silently for everything else. With the same bundled-only view `pptx-pdf` runs in
-1.9-2.1 s, matching `soffice`.
+LibreOffice inspects every font it can see when it starts, about a millisecond each. `soffice
+--headless` is quick because it only ever sees the 128 fonts it bundles, and silently
+substitutes for everything else. `pptx-pdf` reads the families and scripts a deck actually uses
+from its XML and lets LibreOffice see those, the metric-compatible substitutes, any
+`--font-dir`, and fonts covering the deck's scripts: LibreOffice boots in ~230 ms on a Mac with
+700+ system fonts, and the deck's own fonts are used. `--all-fonts` shows everything (about a
+second slower here), which only matters for how a *missing* style or family is substituted.
 
 Fidelity: pages rendered from the stripped tree are pixel-identical to the full LibreOffice
 install on Linux, and embed the same fonts on macOS. On a real 12-slide deck, stock

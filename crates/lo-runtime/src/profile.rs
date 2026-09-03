@@ -70,6 +70,9 @@ impl Profile {
         if lock.try_lock().is_err() {
             return Ok(None);
         }
+        // We now hold the only handle on this profile. LibreOffice's own lock file survives an
+        // abort and makes the next start refuse to load documents; ours makes it redundant.
+        let _ = std::fs::remove_file(dir.join(".lock"));
         let url = file_url(&dir)?;
         tracing::debug!(dir = %dir.display(), "using persistent user profile");
         Ok(Some(Self {
@@ -199,11 +202,16 @@ mod tests {
             Profile::persistent_in(dir.clone()).unwrap().is_none(),
             "second acquirer is refused"
         );
+        std::fs::write(dir.join(".lock"), b"stale LibreOffice lock").unwrap();
         drop(first);
         assert!(dir.is_dir(), "persistent profile is kept on drop");
         assert!(
             Profile::persistent_in(dir.clone()).unwrap().is_some(),
             "lock released on drop"
+        );
+        assert!(
+            !dir.join(".lock").exists(),
+            "a stale LibreOffice lock is cleared on acquire"
         );
         let _ = std::fs::remove_dir_all(&dir);
     }

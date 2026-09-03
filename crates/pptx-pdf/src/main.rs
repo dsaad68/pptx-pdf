@@ -10,7 +10,7 @@ use std::time::Instant;
 
 use anyhow::{Context as _, bail};
 use clap::Parser as _;
-use lo_runtime::{Locator, Profile, file_url};
+use lo_runtime::{FontPolicy, Locator, Profile, file_url};
 use lok::{DocumentType, Office, PdfExportOptions};
 
 use crate::cli::Cli;
@@ -71,12 +71,27 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
     }
 
     // Single-threaded here, before LibreOffice loads: the precondition `configure_fontconfig` documents.
+    let policy = font_policy(cli, input);
     let fonts = runtime
-        .configure_fontconfig(&profile)
+        .configure_fontconfig(&profile, &policy)
         .context("configuring fontconfig")?;
     tracing::debug!(?fonts, "fontconfig");
-    let office =
-        Office::load(runtime.program_dir(), profile.url()).context("starting LibreOffice")?;
+    // A persistent profile that LibreOffice cannot start from (left inconsistent by an earlier
+    // abort) is not worth failing over: retry once with a fresh temporary one.
+    let (office, _profile) = match Office::load(runtime.program_dir(), profile.url()) {
+        Ok(office) => (office, profile),
+        Err(e) if profile.is_persistent() => {
+            tracing::warn!(error = %e, "persistent profile unusable; retrying with a temporary one");
+            let fresh = Profile::create().context("creating user profile")?;
+            runtime
+                .configure_fontconfig(&fresh, &policy)
+                .context("configuring fontconfig")?;
+            let office =
+                Office::load(runtime.program_dir(), fresh.url()).context("starting LibreOffice")?;
+            (office, fresh)
+        }
+        Err(e) => return Err(e).context("starting LibreOffice"),
+    };
     tracing::info!(
         elapsed_ms = started.elapsed().as_millis(),
         "LibreOffice ready"
@@ -110,6 +125,25 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+/// Only the deck's families unless `--all-fonts`; a deck we cannot read the families of (a
+/// binary `.ppt`, say) gets every font.
+fn font_policy(cli: &Cli, input: &Path) -> FontPolicy {
+    if cli.all_fonts {
+        return FontPolicy::All;
+    }
+    match lo_runtime::deckfonts::scan(input) {
+        Ok(fonts) if !fonts.families.is_empty() => {
+            tracing::debug!(families = ?fonts.families, langs = ?fonts.langs, "deck fonts");
+            FontPolicy::from(fonts)
+        }
+        Ok(_) => FontPolicy::All,
+        Err(e) => {
+            tracing::debug!(error = %e, "could not read deck fonts; showing all");
+            FontPolicy::All
+        }
+    }
 }
 
 fn default_output(input: &Path) -> PathBuf {

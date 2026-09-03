@@ -38,6 +38,8 @@ enum Job {
     },
     Fetch,
     LibreOfficeVersion,
+    /// Destroy LibreOffice cleanly (closes its profile lock and recovery state) and stop.
+    Shutdown,
 }
 
 /// Failures, categorised so the Python side can raise the right exception type.
@@ -83,7 +85,13 @@ fn worker() -> Option<&'static Mutex<Sender<Request>>> {
 fn serve(rx: mpsc::Receiver<Request>) {
     let mut office: Option<(Office, Profile)> = None;
     for Request { job, reply } in rx {
+        if matches!(job, Job::Shutdown) {
+            drop(office.take()); // LOK destroy, then the profile lock
+            let _ = reply.send(Ok(String::new()));
+            break;
+        }
         let result = match &job {
+            Job::Shutdown => Ok(String::new()),
             Job::Fetch => boot(&mut office).map(|_| String::new()),
             Job::LibreOfficeVersion => {
                 boot(&mut office).map(|o| o.0.version_info().unwrap_or_default())
@@ -119,10 +127,22 @@ fn boot(slot: &mut Option<(Office, Profile)>) -> Result<&mut (Office, Profile), 
         // Precondition of configure_fontconfig is "before LibreOffice loads"; other Python
         // threads may be running, which is a documented limitation of in-process use.
         runtime
-            .configure_fontconfig(&profile)
+            .configure_fontconfig(&profile, &lo_runtime::FontPolicy::All)
             .map_err(|e| Failure::Runtime(e.to_string()))?;
-        let office = Office::load(runtime.program_dir(), profile.url())
-            .map_err(|e| Failure::Runtime(e.to_string()))?;
+        let (office, profile) = match Office::load(runtime.program_dir(), profile.url()) {
+            Ok(office) => (office, profile),
+            Err(e) if profile.is_persistent() => {
+                tracing::warn!(error = %e, "persistent profile unusable; retrying with a temporary one");
+                let fresh = Profile::create().map_err(|e| Failure::Runtime(e.to_string()))?;
+                runtime
+                    .configure_fontconfig(&fresh, &lo_runtime::FontPolicy::All)
+                    .map_err(|e| Failure::Runtime(e.to_string()))?;
+                let office = Office::load(runtime.program_dir(), fresh.url())
+                    .map_err(|e| Failure::Runtime(e.to_string()))?;
+                (office, fresh)
+            }
+            Err(e) => return Err(Failure::Runtime(e.to_string())),
+        };
         *slot = Some((office, profile));
     }
     slot.as_mut()
@@ -284,6 +304,19 @@ fn libreoffice_version(py: Python<'_>) -> PyResult<String> {
     run(py, Job::LibreOfficeVersion)
 }
 
+/// Shut LibreOffice down cleanly. Registered with `atexit` by the package; safe to call twice.
+#[pyfunction]
+fn shutdown(py: Python<'_>) -> PyResult<()> {
+    if WORKER.get().is_none() {
+        return Ok(());
+    }
+    match run(py, Job::Shutdown) {
+        Ok(_) => Ok(()),
+        // The worker already stopped: nothing left to shut down.
+        Err(_) => Ok(()),
+    }
+}
+
 /// Where trees and caches live.
 #[pyfunction]
 fn cache_dir() -> PyResult<PathBuf> {
@@ -302,5 +335,6 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fetch_py, m)?)?;
     m.add_function(wrap_pyfunction!(libreoffice_version, m)?)?;
     m.add_function(wrap_pyfunction!(cache_dir, m)?)?;
+    m.add_function(wrap_pyfunction!(shutdown, m)?)?;
     Ok(())
 }

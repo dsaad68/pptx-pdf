@@ -12,17 +12,17 @@ The package is not on PyPI. Two ways to get it from GitHub:
 a `--find-links` index:
 
 ```bash
-uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.2
+uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.3
 ```
 
 or pin it in `pyproject.toml`:
 
 ```toml
 [project]
-dependencies = ["pptx-pdf==0.2.2"]
+dependencies = ["pptx-pdf==0.2.3"]
 
 [tool.uv]
-find-links = ["https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.2"]
+find-links = ["https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.3"]
 ```
 
 Wheels exist for macOS Apple Silicon, Linux arm64 and Linux x86_64 (glibc 2.36+), Python 3.9+
@@ -86,6 +86,12 @@ fresh child; if that dies too, `ConversionError` is raised and your process is u
 
 `lo_dir=` on the first call does the same as `PPTX_PDF_LO_DIR`; later calls in the same process
 reuse whatever LibreOffice was started first.
+
+One caveat for `PPTX_PDF_LO_DIR` pointing at a *full* LibreOffice installation (an
+`.app` or a distribution package): LibreOffice bundles its own Python, and when it decides to
+initialise it inside a process that already runs Python, the two interpreters collide and
+LibreOffice aborts. The trees `pptx-pdf` ships contain no Python components, so the default
+setup is unaffected; with a full installation, prefer `Converter(isolated=True)` or the CLI.
 
 ## Development
 
