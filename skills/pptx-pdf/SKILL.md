@@ -5,7 +5,8 @@ description: Convert PowerPoint decks (.pptx, .ppt, .odp) to PDF with LibreOffic
 
 # pptx-pdf
 
-One binary, LibreOffice's renderer inside. Output matches what LibreOffice Impress exports;
+One binary, LibreOffice's renderer inside (a normal `apt install libreoffice` is 2.2 GB and 708
+packages; this is 4-80 MB). Output matches what LibreOffice Impress exports;
 fonts installed on the machine are used, missing ones fall back to metric-compatible substitutes.
 
 ## Install (once)

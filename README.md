@@ -48,11 +48,24 @@ Agent Skills format.
 Measured on the release pipeline and an Apple Silicon laptop; the full story is in
 [docs/how-pptx-pdf-works.md](docs/how-pptx-pdf-works.md#3-results).
 
+What installing LibreOffice normally costs, measured from a bare Debian trixie image with every
+dependency apt pulls in, and from the official macOS disk image:
+
+| | packages | download | installed |
+|---|---|---|---|
+| `apt install libreoffice` as usually typed (with recommends: Java, fonts, everything) | 708 | 561 MB | **2,170 MB** |
+| `apt install --no-install-recommends libreoffice` (full suite) | 209 | 151 MB | 564 MB |
+| `apt install --no-install-recommends libreoffice-impress` | 170 | 117 MB | 422 MB |
+| `apt install --no-install-recommends libreoffice-impress-nogui` (the leanest) | 151 | 105 MB | 366 MB |
+| macOS `LibreOffice.app` | | 299 MB | 805 MB |
+
+What `pptx-pdf` costs instead:
+
 | | Linux arm64 | Linux x86_64 | macOS arm64 |
 |---|---|---|---|
-| LibreOffice as installed | 199 MB | 199 MB | 804 MB |
-| self-contained binary | 62 MB | 64 MB | 80 MB |
+| self-contained binary (download = install) | 62 MB | 64 MB | 80 MB |
 | slim binary / Python wheel | 4 MB / 2 MB | 4 MB / 2 MB | 4 MB / 1 MB |
+| tree the slim variant fetches once | 62 MB | 64 MB | 79 MB |
 | cache after first run | 225 MB | 230 MB | 360 MB |
 | install (`curl \| sh`, 80 MB) | | | 44 s |
 | first run (unpack + first boot + convert) | 1.8 s | | 18 s |

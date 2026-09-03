@@ -30,7 +30,10 @@ The standard recipe is `apt-get install libreoffice` (or a 800 MB `.dmg`) and th
 `soffice --headless --convert-to pdf`. That recipe is fine on a workstation and a bad fit
 everywhere else:
 
-- **Size.** A LibreOffice install is 700–800 MB. In a container image that is most of the
+- **Size.** `apt install libreoffice` on Debian trixie pulls 708 packages, 561 MB of
+  download and **2.2 GB** installed (Java, fonts, every module); even the leanest choice,
+  `libreoffice-impress-nogui` without recommends, is 151 packages and 366 MB on disk. The
+  macOS disk image is 299 MB and unpacks to 805 MB. In a container image that is most of the
   image; in a CI job it is minutes of cache traffic per run; on an agent's machine it is an
   installation step the agent has to be allowed to perform.
 - **Startup.** Every `soffice` invocation boots the whole suite before converting anything:
@@ -203,9 +206,22 @@ verified under emulation, so its timings are omitted rather than reported wrong.
 
 ### Size
 
+Installing LibreOffice normally, measured from a bare Debian trixie image with every
+dependency apt pulls in, and from the official macOS disk image:
+
+| | packages | download | installed |
+|---|---|---|---|
+| `apt install libreoffice` as usually typed (recommends on) | 708 | 561 MB | **2,170 MB** |
+| `apt install --no-install-recommends libreoffice` | 209 | 151 MB | 564 MB |
+| `apt install --no-install-recommends libreoffice-impress` | 170 | 117 MB | 422 MB |
+| `apt install --no-install-recommends libreoffice-impress-nogui` | 151 | 105 MB | 366 MB |
+| macOS `LibreOffice.app` | | 299 MB | 805 MB |
+
+And `pptx-pdf`:
+
 | | Linux arm64 | Linux x86_64 | macOS arm64 |
 |---|---|---|---|
-| upstream LibreOffice, installed | 199 MB (Debian `-nogui`) | 199 MB | 804 MB (`LibreOffice.app`) |
+| upstream source of the tree | Debian `-nogui`, 366 MB with deps | same | `LibreOffice.app`, 805 MB |
 | stripped tree, packed (`zstd -19`) | 32 MB / 65 MB portable | 34 MB / 67 MB portable | 82 MB |
 | self-contained binary (download) | 62 MB | 64 MB | 80 MB |
 | slim binary (download) | 4 MB | 4 MB | 4 MB |
