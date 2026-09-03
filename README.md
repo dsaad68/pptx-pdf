@@ -29,6 +29,9 @@ Both flavours keep the unpacked tree (225–360 MB) in the user cache directory
 
 ## How it works
 
+The long version — why, the strip pipeline step by step, measured results and the license
+position — is in [docs/how-pptx-pdf-works.md](docs/how-pptx-pdf-works.md).
+
 LibreOffice is not compiled here. `tools/lo-tree/build.sh` takes a prebuilt headless
 LibreOffice, traces a real pptx-to-pdf conversion under `strace`, keeps only the ~100 files
 that were opened, and packs them (33 MB, or 65 MB with its shared-library closure for
