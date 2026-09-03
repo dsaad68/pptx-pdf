@@ -22,14 +22,16 @@ jobs:
             target: x86_64-unknown-linux-gnu
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: false   # only used for `uv run --with python-pptx`; nothing to cache
       - run: sudo apt-get install -y -qq zstd
       # tree: trace + strip + verify inside Docker; binary: built in the rust:1.98-slim image
       # (glibc 2.36) and run in a bare debian:trixie-slim container without --lo-dir
       - run: PPTX_PDF_ARCH=${{ matrix.arch }} tools/lo-tree/build.sh
       - run: PPTX_PDF_ARCH=${{ matrix.arch }} tools/e2e-embedded.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pptx-pdf-${{ matrix.target }}
           path: target-linux-${{ matrix.arch }}-embedded/release/pptx-pdf
@@ -38,11 +40,13 @@ jobs:
   macos:
     runs-on: macos-14   # Apple Silicon
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.98.0
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: false   # only used for `uv run --with python-pptx`; nothing to cache
       # Pinned LibreOffice from TDF's permanent archive: the Homebrew cask on runners can lag
       # behind and point at a version the main download server has already removed.
       - name: LibreOffice ${{ env.LO_VERSION }}
@@ -58,18 +62,20 @@ jobs:
       - run: cargo build --release --locked
       - run: tools/lo-tree/macos/build.sh
       - run: tools/e2e-macos.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pptx-pdf-aarch64-apple-darwin
           path: target-macos-embedded/release/pptx-pdf
           if-no-files-found: error
 
   release:
+    # a workflow_dispatch from a branch builds and verifies everything but publishes nothing
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: [linux, macos]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
       - name: package
