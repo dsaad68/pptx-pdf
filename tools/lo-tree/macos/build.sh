@@ -86,7 +86,8 @@ echo "== pack"
 # COPYFILE_DISABLE: bsdtar would otherwise add AppleDouble "._*" entries, which configmgr then
 # tries to parse as .xcd files inside registry/
 find "$tree" -name '._*' -delete
-COPYFILE_DISABLE=1 tar --no-xattrs -cf - -C "$tree" . | zstd -19 -T0 -q -f -o "$out/lo-tree-macos-$arch.tar.zst"
-zstd -dc "$out/lo-tree-macos-$arch.tar.zst" | tar -tf - | grep -c '/\._' | xargs -I{} sh -c '[ {} -eq 0 ] || { echo "AppleDouble entries in tarball"; exit 1; }'
+COPYFILE_DISABLE=1 tar -cf - -C "$tree" . | zstd -19 -T0 -q -f -o "$out/lo-tree-macos-$arch.tar.zst"
+stray=$(zstd -dc "$out/lo-tree-macos-$arch.tar.zst" | tar -tf - | grep -c '/\._' || true)
+[ "$stray" -eq 0 ] || { echo "AppleDouble entries in tarball: $stray"; exit 1; }
 ls -la "$out/lo-tree-macos-$arch.tar.zst" | awk '{printf "   %.1f MB\n", $5/1048576}'
 echo "embed with: PPTX_PDF_LO_TREE=$out/lo-tree-macos-$arch.tar.zst cargo build --release --features embedded"
