@@ -14,8 +14,9 @@ docker run --rm --platform "$platform" \
   -v "$repo/target-linux-$arch/release/pptx-pdf":/usr/local/bin/pptx-pdf:ro \
   -v "$work/tree":/opt/lo:ro \
   -v "$repo/tools/lo-tree/corpus":/corpus:ro \
-  -v "$work/pdf":/pdf \
+  -v "$work/pdf":/pdf -e OWNER="$(id -u):$(id -g)" \
   debian:trixie-slim bash -c '
+    trap "chown -R $OWNER /pdf" EXIT
     set -e
     echo "  installed fonts: $(ls /usr/share/fonts 2>/dev/null | wc -l), libreoffice: $(ls /usr/lib/libreoffice 2>/dev/null | wc -l), libicu: $(ls /usr/lib/*/libicuuc* 2>/dev/null | wc -l)"
     export PPTX_PDF_LO_DIR=/opt/lo

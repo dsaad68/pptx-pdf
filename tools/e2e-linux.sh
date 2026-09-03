@@ -27,8 +27,9 @@ docker run --rm --platform "$platform" \
   -v "$work/relocated/tree":/opt/lo-relocated:ro \
   -v "$repo/tools/lo-tree/corpus":/corpus:ro \
   -v "$repo/tools/lo-tree/out/fonts":/fonts:ro \
-  -v "$work/pdf":/pdf \
+  -v "$work/pdf":/pdf -e OWNER="$(id -u):$(id -g)" \
   "$image" bash -c '
+    trap "chown -R $OWNER /pdf" EXIT
     set -e
     export PPTX_PDF_LO_DIR=/opt/lo-relocated
     t0=$(date +%s%3N); pptx-pdf /corpus/text_fonts.pptx -o /pdf/text.pdf -v; echo "  full: $(( $(date +%s%3N) - t0 ))ms, $(pdfinfo /pdf/text.pdf | awk "/Pages/{print \$2}") pages"

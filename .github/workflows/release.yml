@@ -43,7 +43,18 @@ jobs:
         with:
           toolchain: 1.98.0
       - uses: astral-sh/setup-uv@v5
-      - run: brew install --cask libreoffice && brew install zstd
+      # Pinned LibreOffice from TDF's permanent archive: the Homebrew cask on runners can lag
+      # behind and point at a version the main download server has already removed.
+      - name: LibreOffice ${{ env.LO_VERSION }}
+        env:
+          LO_VERSION: 26.8.0.3
+        run: |
+          curl -fsSL -o lo.dmg "https://downloadarchive.documentfoundation.org/libreoffice/old/$LO_VERSION/mac/aarch64/LibreOffice_${LO_VERSION}_MacOS_aarch64.dmg"
+          hdiutil attach -nobrowse -quiet -mountpoint /tmp/lo lo.dmg
+          cp -R /tmp/lo/LibreOffice.app /Applications/
+          hdiutil detach -quiet /tmp/lo; rm lo.dmg
+          /Applications/LibreOffice.app/Contents/MacOS/soffice --version
+      - run: brew install zstd
       - run: cargo build --release --locked
       - run: tools/lo-tree/macos/build.sh
       - run: tools/e2e-macos.sh

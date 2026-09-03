@@ -24,7 +24,8 @@ mkdir -p corpus out
 docker build -q --platform "$platform" -t "$image" . >/dev/null
 uv run --quiet --with python-pptx --with pillow python3 gen_corpus.py
 rm -f out/trace_*.log
-docker run --rm --platform "$platform" -v "$here":/work "$image" bash -c './trace.sh && ./strip.sh && ./export.sh'
+docker run --rm --platform "$platform" -v "$here":/work -e OWNER="$(id -u):$(id -g)" "$image" \
+  bash -c './trace.sh && ./strip.sh && ./export.sh; s=$?; chown -R "$OWNER" /work/out; exit $s'
 
 tar -cf - -C out/tree --exclude=./syslib . | zstd -19 -T0 -q -f -o "out/lo-tree-linux-$arch.tar.zst"
 tar -cf - -C out/tree . | zstd -19 -T0 -q -f -o "out/lo-tree-linux-$arch-portable.tar.zst"

@@ -15,15 +15,16 @@ rm -rf "$work"; mkdir -p "$work/pdf" "$work/cache"
 echo "== build embedded CLI for linux/$arch"
 docker run --rm --platform "$platform" -v "$repo":/src -v pptx-pdf-cargo-registry:/usr/local/cargo/registry -w /src \
   -e PPTX_PDF_LO_TREE="/src/$tree" \
-  rust:1.98-slim cargo build --release --locked --features embedded --target-dir "/src/target-linux-$arch-embedded" 2>&1 | tail -1
+  rust:1.98-slim bash -c "cargo build --release --locked --features embedded --target-dir /src/target-linux-$arch-embedded && chown -R $(id -u):$(id -g) /src/target-linux-$arch-embedded" 2>&1 | tail -1
 ls -la "$repo/target-linux-$arch-embedded/release/pptx-pdf" | awk '{printf "  binary: %.1f MB\n", $5/1048576}'
 
 echo "== run in bare debian:trixie-slim (no LibreOffice, no fonts, no --lo-dir)"
 docker run --rm --platform "$platform" \
   -v "$repo/target-linux-$arch-embedded/release/pptx-pdf":/usr/local/bin/pptx-pdf:ro \
   -v "$repo/tools/lo-tree/corpus":/corpus:ro \
-  -v "$work/pdf":/pdf -v "$work/cache":/root/.cache \
+  -v "$work/pdf":/pdf -v "$work/cache":/root/.cache -e OWNER="$(id -u):$(id -g)" \
   debian:trixie-slim bash -c '
+    trap "chown -R $OWNER /pdf /root/.cache" EXIT
     set -e
     t0=$(date +%s%3N); pptx-pdf /corpus/text_fonts.pptx -o /pdf/first.pdf -v 2>&1 | grep -E "unpacking|ready|done" | sed "s/^/    /"; echo "  first run (unpack + convert): $(( $(date +%s%3N) - t0 ))ms"
     t0=$(date +%s%3N); pptx-pdf /corpus/charts.pptx -o /pdf/second.pdf -q; echo "  second run (cached): $(( $(date +%s%3N) - t0 ))ms"
