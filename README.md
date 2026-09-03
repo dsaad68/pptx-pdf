@@ -9,6 +9,19 @@ pptx-pdf deck.pptx -o out/deck.pdf --pages 2-5 --notes
 pptx-pdf deck.pptx --font-dir ./brand-fonts
 ```
 
+## Install
+
+Prebuilt, self-contained binaries (macOS Apple Silicon, Linux arm64, Linux x86_64) are on the
+[releases page](https://github.com/dsaad68/pptx-pdf/releases):
+
+```
+curl -fsSL https://raw.githubusercontent.com/dsaad68/pptx-pdf/main/install.sh | sh   # -> ~/.local/bin
+cargo binstall pptx-pdf                                                              # if you use cargo-binstall
+```
+
+The installer verifies the download against the release's `SHA256SUMS`. The first run unpacks
+LibreOffice (about 350 MB) into the user cache directory; every run after that reuses it.
+
 ## How it works
 
 LibreOffice is not compiled here. `tools/lo-tree/build.sh` takes a prebuilt headless

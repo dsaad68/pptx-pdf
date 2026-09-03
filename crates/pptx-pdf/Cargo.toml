@@ -26,3 +26,10 @@ tracing-subscriber = { workspace = true }
 
 [lints]
 workspace = true
+
+# `cargo binstall pptx-pdf` fetches the prebuilt self-contained binary from GitHub releases
+# (published by tools/release.sh / .github/workflows/release.yml) instead of compiling.
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }{ archive-suffix }"
+pkg-fmt = "tgz"
+bin-dir = "{ bin }{ binary-ext }"

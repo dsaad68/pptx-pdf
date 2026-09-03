@@ -1,0 +1,81 @@
+# On a v* tag: build the LibreOffice trees and the self-contained binaries for every platform,
+# run the end-to-end suites, and publish the binaries as release assets.
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            target: aarch64-unknown-linux-gnu
+          - runner: ubuntu-24.04
+            arch: amd64
+            target: x86_64-unknown-linux-gnu
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: sudo apt-get install -y -qq zstd
+      # tree: trace + strip + verify inside Docker; binary: built in the rust:1.98-slim image
+      # (glibc 2.36) and run in a bare debian:trixie-slim container without --lo-dir
+      - run: PPTX_PDF_ARCH=${{ matrix.arch }} tools/lo-tree/build.sh
+      - run: PPTX_PDF_ARCH=${{ matrix.arch }} tools/e2e-embedded.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pptx-pdf-${{ matrix.target }}
+          path: target-linux-${{ matrix.arch }}-embedded/release/pptx-pdf
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-14   # Apple Silicon
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+      - uses: astral-sh/setup-uv@v5
+      - run: brew install --cask libreoffice && brew install zstd
+      - run: cargo build --release --locked
+      - run: tools/lo-tree/macos/build.sh
+      - run: tools/e2e-macos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pptx-pdf-aarch64-apple-darwin
+          path: target-macos-embedded/release/pptx-pdf
+          if-no-files-found: error
+
+  release:
+    needs: [linux, macos]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: package
+        run: |
+          set -eu
+          tag=${GITHUB_REF_NAME}
+          mkdir -p dist
+          for target in aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu aarch64-apple-darwin; do
+            stage=$(mktemp -d)
+            cp "artifacts/pptx-pdf-$target/pptx-pdf" "$stage/"; chmod +x "$stage/pptx-pdf"
+            cp LICENSE-MIT LICENSE-APACHE README.md "$stage/"
+            tar -czf "dist/pptx-pdf-$tag-$target.tar.gz" -C "$stage" pptx-pdf LICENSE-MIT LICENSE-APACHE README.md
+          done
+          cp install.sh dist/
+          (cd dist && sha256sum *.tar.gz > SHA256SUMS && cat SHA256SUMS)
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --title "pptx-pdf $GITHUB_REF_NAME" --generate-notes dist/*.tar.gz dist/SHA256SUMS dist/install.sh
