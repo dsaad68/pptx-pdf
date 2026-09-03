@@ -1,14 +1,14 @@
-//! The LibreOffice tree compiled into the binary, and its unpack-to-cache logic.
+//! The LibreOffice tree compiled into the binary.
 //!
-//! The tarball is keyed by its SHA-256 (computed in `build.rs`), so a new tree never
-//! collides with a cached older one, and a rebuild with the same tree reuses the cache.
-//! Unpacking goes into a sibling temp directory that is renamed into place only once
-//! complete, so an interrupted first run cannot leave a half tree that looks valid.
+//! The tarball is keyed by its SHA-256 (computed in `build.rs`), so a new tree never collides
+//! with a cached older one, a rebuild with the same tree reuses the cache, and a slim binary
+//! that downloads the same tree shares it.
 
 use std::path::PathBuf;
 
-use crate::Result;
 use crate::error::Error;
+use crate::unpack::{tree_dir_name, unpack_zstd_tar};
+use crate::{Result, cache};
 
 static TREE: &[u8] = include_bytes!(env!("PPTX_PDF_LO_TREE"));
 const TREE_SHA256: &str = env!("PPTX_PDF_LO_TREE_SHA256");
@@ -24,28 +24,9 @@ pub(crate) fn ensure_unpacked() -> Result<PathBuf> {
     if TREE.is_empty() {
         return Err(Error::NoEmbeddedTree);
     }
-    let root = crate::cache::cache_dir()?.join(format!(
-        "lo-{}",
-        TREE_SHA256.get(..16).unwrap_or(TREE_SHA256)
-    ));
-    if root.is_dir() {
-        return Ok(root);
+    let root = cache::cache_dir()?.join(tree_dir_name(TREE_SHA256));
+    if !root.is_dir() {
+        tracing::info!(root = %root.display(), bytes = TREE.len(), "unpacking embedded LibreOffice tree");
     }
-    tracing::info!(root = %root.display(), bytes = TREE.len(), "unpacking embedded LibreOffice tree");
-    let staging = root.with_extension(format!("tmp-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&staging);
-    std::fs::create_dir_all(&staging).map_err(Error::io("creating cache directory", &staging))?;
-    let decoder = zstd::Decoder::new(TREE).map_err(Error::io("opening embedded tree", &staging))?;
-    tar::Archive::new(decoder)
-        .unpack(&staging)
-        .map_err(Error::io("unpacking embedded tree", &staging))?;
-    match std::fs::rename(&staging, &root) {
-        Ok(()) => {}
-        // Another process finished first; its copy is byte-identical.
-        Err(_) if root.is_dir() => {
-            let _ = std::fs::remove_dir_all(&staging);
-        }
-        Err(e) => return Err(Error::io("finalising cache directory", &root)(e)),
-    }
-    Ok(root)
+    unpack_zstd_tar(TREE, &root)
 }

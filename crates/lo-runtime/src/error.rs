@@ -37,6 +37,42 @@ pub enum Error {
     )]
     NoEmbeddedTree,
 
+    /// HTTP transport failure or non-success status while fetching the tree.
+    #[cfg(feature = "download")]
+    #[error("fetching {url}: {source}")]
+    Http {
+        /// What was being fetched.
+        url: String,
+        /// Underlying error.
+        #[source]
+        source: ureq::Error,
+    },
+
+    /// The downloaded tree did not hash to the expected value; nothing was kept.
+    #[error("{file} failed verification: expected sha256 {expected}, got {actual}")]
+    ChecksumMismatch {
+        /// Tarball name.
+        file: String,
+        /// Pinned or published hash.
+        expected: String,
+        /// Hash of what was received.
+        actual: String,
+    },
+
+    /// No pinned hash and `SHA256SUMS` has no entry for the tarball.
+    #[error("no SHA-256 for {file} in {url}; cannot verify the download")]
+    ChecksumUnavailable {
+        /// Tarball name.
+        file: String,
+        /// The `SHA256SUMS` that was consulted.
+        url: String,
+    },
+
+    /// Neither an embedded tree nor a download source was compiled in or configured for the
+    /// platform this binary runs on.
+    #[error("no LibreOffice tree is available for this platform ({0})")]
+    UnsupportedPlatform(&'static str),
+
     /// No usable cache directory could be determined for unpacking the embedded tree.
     #[error("cannot determine a cache directory; set PPTX_PDF_CACHE_DIR")]
     NoCacheDir,

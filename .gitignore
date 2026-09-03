@@ -3,6 +3,8 @@
 /tools/lo-tree/out/
 /tools/lo-tree/corpus/
 /target-linux*
+/target-slim
+/target-macos-slim
 /target-macos*
 /test.pptx
 /tools/lo-tree/macos/fstrace.dylib

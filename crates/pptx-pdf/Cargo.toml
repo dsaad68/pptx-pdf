@@ -1,6 +1,6 @@
 [package]
 name = "pptx-pdf"
-version = "0.1.0"
+version = "0.2.0"
 description = "Convert PowerPoint decks to PDF with an embedded LibreOffice, no install required"
 edition.workspace = true
 rust-version.workspace = true
@@ -12,13 +12,17 @@ name = "pptx-pdf"
 path = "src/main.rs"
 
 [features]
-default = []
-# Carry the stripped LibreOffice tree inside the binary (see lo-runtime).
+# `cargo install pptx-pdf` gives the slim binary that downloads its LibreOffice tree on first use.
+default = ["download"]
+# Carry the stripped LibreOffice tree inside the binary (see lo-runtime); takes precedence
+# over `download` at run time.
 embedded = ["lo-runtime/embedded"]
+download = ["lo-runtime/download", "dep:indicatif"]
 
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
+indicatif = { workspace = true, optional = true }
 lo-runtime = { workspace = true }
 lok = { workspace = true }
 tracing = { workspace = true }

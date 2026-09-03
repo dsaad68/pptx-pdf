@@ -1,6 +1,7 @@
 //! `pptx-pdf`: convert a PowerPoint deck to PDF through an in-process LibreOffice.
 
 mod cli;
+mod tree;
 
 use std::io::{self, Write as _};
 use std::path::{Path, PathBuf};
@@ -9,7 +10,7 @@ use std::time::Instant;
 
 use anyhow::{Context as _, bail};
 use clap::Parser as _;
-use lo_runtime::{Profile, Runtime, file_url};
+use lo_runtime::{Locator, Profile, file_url};
 use lok::{DocumentType, Office, PdfExportOptions};
 
 use crate::cli::Cli;
@@ -29,7 +30,21 @@ fn main() -> ExitCode {
 
 fn run(cli: &Cli) -> anyhow::Result<()> {
     let started = Instant::now();
-    let input = &cli.input;
+    let locator = tree::with_download(
+        Locator::new().explicit(cli.lo_dir.as_deref()),
+        cli.lo_tree_url.clone(),
+        cli.lo_tree_sha256.clone(),
+        cli.quiet,
+    );
+    if cli.fetch {
+        let runtime = locator.locate().context("fetching LibreOffice runtime")?;
+        tracing::info!(elapsed_ms = started.elapsed().as_millis(), root = %runtime.install_root().display(), "ready");
+        if !cli.quiet {
+            println!("{}", runtime.install_root().display());
+        }
+        return Ok(());
+    }
+    let input = cli.input.as_deref().context("an input file is required")?;
     if !input.is_file() {
         bail!("input {} is not a file", input.display());
     }
@@ -40,7 +55,7 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
         bail!("output directory {} does not exist", parent.display());
     }
 
-    let runtime = Runtime::locate(cli.lo_dir.as_deref()).context("locating LibreOffice runtime")?;
+    let runtime = locator.locate().context("locating LibreOffice runtime")?;
     let profile = Profile::create().context("creating user profile")?;
     for dir in &cli.font_dir {
         let n = profile

@@ -12,7 +12,17 @@ const ENV_DECK: &str = "PPTX_PDF_TEST_DECK";
 
 fn bin() -> Command {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_pptx-pdf"));
-    cmd.env_remove(ENV_LO_DIR).env_remove("RUST_LOG");
+    // Never let a test reach the network: a slim build would otherwise try the real release.
+    cmd.env_remove(ENV_LO_DIR)
+        .env_remove("RUST_LOG")
+        .env(
+            "PPTX_PDF_LO_TREE_URL",
+            "http://127.0.0.1:9/unreachable.tar.zst",
+        )
+        .env(
+            "PPTX_PDF_CACHE_DIR",
+            std::env::temp_dir().join("pptx-pdf-cli-test-cache"),
+        );
     cmd
 }
 
@@ -43,8 +53,12 @@ fn reports_missing_runtime_clearly() {
     let out = bin().arg(&deck).output().unwrap();
     assert!(!out.status.success());
     let stderr = String::from_utf8_lossy(&out.stderr);
+    // Depending on features: nothing configured, an empty embedded tree, or a download that
+    // cannot reach its (deliberately dead) URL.
     assert!(
-        stderr.contains("no LibreOffice runtime") || stderr.contains("embedded LibreOffice tree"),
+        stderr.contains("no LibreOffice runtime")
+            || stderr.contains("embedded LibreOffice tree")
+            || stderr.contains("fetching http://127.0.0.1:9/"),
         "stderr: {stderr}"
     );
 }

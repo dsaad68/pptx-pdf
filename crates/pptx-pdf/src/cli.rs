@@ -10,15 +10,29 @@ use lok::PageRange;
 #[command(name = "pptx-pdf", version, about, long_about = None)]
 pub(crate) struct Cli {
     /// Presentation to convert (.pptx, .ppt, .odp, ...).
-    pub(crate) input: PathBuf,
+    #[arg(required_unless_present = "fetch")]
+    pub(crate) input: Option<PathBuf>,
 
     /// Where to write the PDF. Defaults to the input path with a .pdf extension.
     #[arg(short, long, value_name = "FILE")]
     pub(crate) output: Option<PathBuf>,
 
-    /// LibreOffice installation to use instead of the embedded one.
+    /// LibreOffice installation to use instead of the embedded or downloaded one.
     #[arg(long, value_name = "DIR", env = lo_runtime::ENV_LO_DIR)]
     pub(crate) lo_dir: Option<PathBuf>,
+
+    /// Only make sure the LibreOffice tree is available (download or unpack it), then exit.
+    #[arg(long)]
+    pub(crate) fetch: bool,
+
+    /// Where to download the LibreOffice tree from (slim builds). Defaults to this release's
+    /// asset on GitHub; a SHA256SUMS next to it is used when no hash is pinned.
+    #[arg(long, value_name = "URL", env = "PPTX_PDF_LO_TREE_URL", hide = true)]
+    pub(crate) lo_tree_url: Option<String>,
+
+    /// Expected SHA-256 of the downloaded tree, overriding the pinned one.
+    #[arg(long, value_name = "HEX", env = "PPTX_PDF_LO_TREE_SHA256", hide = true)]
+    pub(crate) lo_tree_sha256: Option<String>,
 
     /// Append notes pages (slide plus speaker notes) after the slides.
     #[arg(long)]
@@ -67,5 +81,11 @@ mod tests {
     #[test]
     fn quiet_and_verbose_conflict() {
         assert!(Cli::try_parse_from(["pptx-pdf", "deck.pptx", "-q", "-v"]).is_err());
+    }
+
+    #[test]
+    fn fetch_needs_no_input_but_input_is_otherwise_required() {
+        assert!(Cli::try_parse_from(["pptx-pdf", "--fetch"]).is_ok());
+        assert!(Cli::try_parse_from(["pptx-pdf"]).is_err());
     }
 }

@@ -21,6 +21,8 @@ thiserror = "2.0"
 tracing = { version = "0.1", default-features = false, features = ["std", "attributes"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "ansi"] }
 zstd = { version = "0.13", default-features = false }
+ureq = { version = "3.4", default-features = false, features = ["rustls"] }
+indicatif = { version = "0.17", default-features = false }
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

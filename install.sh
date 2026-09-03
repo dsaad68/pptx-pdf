@@ -1,9 +1,12 @@
 #!/bin/sh
 # Install pptx-pdf: downloads the prebuilt, self-contained binary for this machine from the
 # latest GitHub release, verifies its SHA-256 against the release's SHA256SUMS, and puts it in
-# ~/.local/bin (override with PPTX_PDF_INSTALL_DIR; pin a version with PPTX_PDF_VERSION=0.1.0).
+# ~/.local/bin (override with PPTX_PDF_INSTALL_DIR; pin a version with PPTX_PDF_VERSION=0.2.0).
+# PPTX_PDF_SLIM=1 installs the ~4 MB variant that downloads LibreOffice on first run instead
+# of carrying it inside the binary.
 #
 #   curl -fsSL https://raw.githubusercontent.com/dsaad68/pptx-pdf/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/dsaad68/pptx-pdf/main/install.sh | PPTX_PDF_SLIM=1 sh
 set -eu
 REPO=dsaad68/pptx-pdf
 case "$(uname -s)-$(uname -m)" in
@@ -14,7 +17,8 @@ case "$(uname -s)-$(uname -m)" in
 esac
 version=${PPTX_PDF_VERSION:-$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')}
 [ -n "$version" ] || { echo "pptx-pdf: could not determine the latest version" >&2; exit 1; }
-asset="pptx-pdf-v$version-$target.tar.gz"
+name=pptx-pdf; [ "${PPTX_PDF_SLIM:-0}" = "1" ] && name=pptx-pdf-slim
+asset="$name-v$version-$target.tar.gz"
 base="https://github.com/$REPO/releases/download/v$version"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 echo "downloading $asset"

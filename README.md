@@ -11,16 +11,21 @@ pptx-pdf deck.pptx --font-dir ./brand-fonts
 
 ## Install
 
-Prebuilt, self-contained binaries (macOS Apple Silicon, Linux arm64, Linux x86_64) are on the
-[releases page](https://github.com/dsaad68/pptx-pdf/releases):
+Prebuilt binaries for macOS (Apple Silicon), Linux arm64 and Linux x86_64 are on the
+[releases page](https://github.com/dsaad68/pptx-pdf/releases), in two flavours:
 
-```
-curl -fsSL https://raw.githubusercontent.com/dsaad68/pptx-pdf/main/install.sh | sh   # -> ~/.local/bin
-cargo binstall pptx-pdf                                                              # if you use cargo-binstall
-```
+| | self-contained | slim |
+|---|---|---|
+| download | 62–80 MB | ~4 MB |
+| LibreOffice | inside the binary, unpacked to the cache on first run | fetched from the release on first run (needs network once), verified against a hash pinned in the binary |
+| disk after first run | binary + cache | cache only |
+| `curl \| sh` | `curl -fsSL https://raw.githubusercontent.com/dsaad68/pptx-pdf/main/install.sh \| sh` | same, with `PPTX_PDF_SLIM=1 sh` |
+| cargo | `cargo binstall pptx-pdf` | `cargo install pptx-pdf` (builds from source) |
 
-The installer verifies the download against the release's `SHA256SUMS`. The first run unpacks
-LibreOffice (about 350 MB) into the user cache directory; every run after that reuses it.
+The installer verifies downloads against the release's `SHA256SUMS`; the slim binary verifies
+its tree the same way. `pptx-pdf --fetch` pre-downloads the tree, for images and CI caches.
+Both flavours keep the unpacked tree (225–360 MB) in the user cache directory
+(`~/Library/Caches/pptx-pdf` or `~/.cache/pptx-pdf`; `PPTX_PDF_CACHE_DIR` overrides).
 
 ## How it works
 
@@ -58,7 +63,8 @@ substitutes (Carlito for Calibri, Liberation for Arial/Times/Courier, Caladea fo
 ## Building
 
 ```
-cargo build --release                       # needs --lo-dir or PPTX_PDF_LO_DIR at run time
+cargo build --release                       # slim: downloads the tree for this version on first run
+cargo build --release --no-default-features # needs --lo-dir or PPTX_PDF_LO_DIR at run time
 tools/lo-tree/build.sh                      # docker + uv + zstd, ~30 s after the first run
 PPTX_PDF_LO_TREE=tools/lo-tree/out/lo-tree-linux-arm64-portable.tar.zst \
   cargo build --release --features embedded # self-contained 64 MB Linux binary
@@ -71,6 +77,9 @@ PPTX_PDF_LO_TREE=tools/lo-tree/out/lo-tree-macos-arm64.tar.zst \
 at a path LibreOffice has never seen — page ranges, notes pages, `--font-dir`, error paths.
 `tools/e2e-portable.sh` and `tools/e2e-embedded.sh` repeat that in a bare `debian:trixie-slim`
 with nothing installed, the latter with the single embedded binary and no `--lo-dir`.
+`tools/e2e-slim.sh` serves the tree from a local HTTP server and checks the slim binary's
+download, verification, caching and rejection of a bad hash. `tools/e2e-macos.sh` is the
+macOS equivalent of the embedded check.
 
 ## Status
 

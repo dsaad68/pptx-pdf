@@ -31,10 +31,25 @@ jobs:
       # (glibc 2.36) and run in a bare debian:trixie-slim container without --lo-dir
       - run: PPTX_PDF_ARCH=${{ matrix.arch }} tools/lo-tree/build.sh
       - run: PPTX_PDF_ARCH=${{ matrix.arch }} tools/e2e-embedded.sh
+      # slim binary: same source, tree hash pinned in, built in the same glibc-2.36 image
+      - run: |
+          sha=$(sha256sum tools/lo-tree/out/lo-tree-linux-${{ matrix.arch }}-portable.tar.zst | cut -d' ' -f1)
+          docker run --rm -v "$PWD":/src -w /src -e PPTX_PDF_LO_TREE_SHA256=$sha rust:1.98-slim \
+            bash -c "cargo build --release --locked --target-dir /src/target-linux-${{ matrix.arch }}-slim && chown -R $(id -u):$(id -g) /src/target-linux-${{ matrix.arch }}-slim"
       - uses: actions/upload-artifact@v7
         with:
           name: pptx-pdf-${{ matrix.target }}
           path: target-linux-${{ matrix.arch }}-embedded/release/pptx-pdf
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pptx-pdf-slim-${{ matrix.target }}
+          path: target-linux-${{ matrix.arch }}-slim/release/pptx-pdf
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lo-tree-linux-${{ matrix.arch }}-portable
+          path: tools/lo-tree/out/lo-tree-linux-${{ matrix.arch }}-portable.tar.zst
           if-no-files-found: error
 
   macos:
@@ -62,10 +77,24 @@ jobs:
       - run: cargo build --release --locked
       - run: tools/lo-tree/macos/build.sh
       - run: tools/e2e-macos.sh
+      - run: tools/e2e-slim.sh
+      - run: |
+          sha=$(shasum -a 256 tools/lo-tree/out/lo-tree-macos-arm64.tar.zst | cut -d' ' -f1)
+          PPTX_PDF_LO_TREE_SHA256=$sha cargo build --release --locked --target-dir target-macos-slim
       - uses: actions/upload-artifact@v7
         with:
           name: pptx-pdf-aarch64-apple-darwin
           path: target-macos-embedded/release/pptx-pdf
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pptx-pdf-slim-aarch64-apple-darwin
+          path: target-macos-slim/release/pptx-pdf
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lo-tree-macos-arm64
+          path: tools/lo-tree/out/lo-tree-macos-arm64.tar.zst
           if-no-files-found: error
 
   release:
@@ -84,13 +113,18 @@ jobs:
           tag=${GITHUB_REF_NAME}
           mkdir -p dist
           for target in aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu aarch64-apple-darwin; do
-            stage=$(mktemp -d)
-            cp "artifacts/pptx-pdf-$target/pptx-pdf" "$stage/"; chmod +x "$stage/pptx-pdf"
-            cp LICENSE-MIT LICENSE-APACHE README.md "$stage/"
-            tar -czf "dist/pptx-pdf-$tag-$target.tar.gz" -C "$stage" pptx-pdf LICENSE-MIT LICENSE-APACHE README.md
+            for name in pptx-pdf pptx-pdf-slim; do
+              stage=$(mktemp -d)
+              cp "artifacts/$name-$target/pptx-pdf" "$stage/"; chmod +x "$stage/pptx-pdf"
+              cp LICENSE-MIT LICENSE-APACHE README.md "$stage/"
+              tar -czf "dist/$name-$tag-$target.tar.gz" -C "$stage" pptx-pdf LICENSE-MIT LICENSE-APACHE README.md
+            done
+          done
+          for tree in linux-arm64-portable linux-amd64-portable macos-arm64; do
+            cp "artifacts/lo-tree-$tree/lo-tree-$tree.tar.zst" "dist/lo-tree-$tree-$tag.tar.zst"
           done
           cp install.sh dist/
-          (cd dist && sha256sum *.tar.gz > SHA256SUMS && cat SHA256SUMS)
+          (cd dist && sha256sum *.tar.gz *.tar.zst > SHA256SUMS && cat SHA256SUMS)
       - name: publish
         env:
           GH_TOKEN: ${{ github.token }}
@@ -98,7 +132,7 @@ jobs:
           # tools/release.sh may have created the release from locally verified binaries already;
           # in that case the CI-built, CI-verified assets replace them
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" --clobber dist/*.tar.gz dist/SHA256SUMS dist/install.sh
+            gh release upload "$GITHUB_REF_NAME" --clobber dist/*.tar.gz dist/*.tar.zst dist/SHA256SUMS dist/install.sh
           else
-            gh release create "$GITHUB_REF_NAME" --title "pptx-pdf $GITHUB_REF_NAME" --generate-notes dist/*.tar.gz dist/SHA256SUMS dist/install.sh
+            gh release create "$GITHUB_REF_NAME" --title "pptx-pdf $GITHUB_REF_NAME" --generate-notes dist/*.tar.gz dist/*.tar.zst dist/SHA256SUMS dist/install.sh
           fi

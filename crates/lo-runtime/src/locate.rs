@@ -26,35 +26,106 @@ pub struct Runtime {
     program_dir: PathBuf,
 }
 
-impl Runtime {
-    /// Find a runtime: `explicit`, then [`ENV_LO_DIR`], then the embedded tree if compiled in.
+/// Builds the lookup chain for a [`Runtime`]: explicit directory, environment, embedded
+/// tree, downloaded tree — the first that applies wins.
+#[derive(Default)]
+pub struct Locator<'a> {
+    explicit: Option<&'a Path>,
+    #[cfg(feature = "download")]
+    download: Option<crate::download::TreeSource>,
+    #[cfg(feature = "download")]
+    progress: Option<Box<dyn FnMut(crate::download::Progress) + 'a>>,
+}
+
+impl std::fmt::Debug for Locator<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Locator")
+            .field("explicit", &self.explicit)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<'a> Locator<'a> {
+    /// Start an empty chain (environment and compiled-in sources still apply).
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// An explicit installation root, tried first.
+    #[must_use]
+    pub fn explicit(mut self, root: Option<&'a Path>) -> Self {
+        self.explicit = root;
+        self
+    }
+
+    /// Where to download the tree from if nothing else applies.
+    #[cfg(feature = "download")]
+    #[must_use]
+    pub fn download(mut self, source: crate::download::TreeSource) -> Self {
+        self.download = Some(source);
+        self
+    }
+
+    /// Receive download progress events.
+    #[cfg(feature = "download")]
+    #[must_use]
+    pub fn on_progress(mut self, f: impl FnMut(crate::download::Progress) + 'a) -> Self {
+        self.progress = Some(Box::new(f));
+        self
+    }
+
+    /// Run the chain.
     ///
     /// # Errors
     ///
     /// [`Error::NoRuntime`] when nothing is configured; [`Error::NotALibreOfficeTree`] when a
-    /// configured directory has no LOK library; unpack failures for the embedded tree.
-    pub fn locate(explicit: Option<&Path>) -> Result<Self> {
-        if let Some(root) = explicit {
+    /// configured directory has no LOK library; the embedded or download errors otherwise.
+    pub fn locate(self) -> Result<Runtime> {
+        if let Some(root) = self.explicit {
             tracing::debug!(root = %root.display(), "using explicit LibreOffice directory");
-            return Self::from_root(root);
+            return Runtime::from_root(root);
         }
         if let Some(root) = std::env::var_os(ENV_LO_DIR) {
             tracing::debug!(root = %Path::new(&root).display(), "using {ENV_LO_DIR}");
-            return Self::from_root(Path::new(&root));
+            return Runtime::from_root(Path::new(&root));
         }
-        Self::from_embedded()
-    }
-
-    #[cfg(feature = "embedded")]
-    fn from_embedded() -> Result<Self> {
-        let root = crate::embedded::ensure_unpacked()?;
-        tracing::debug!(root = %root.display(), "using embedded LibreOffice tree");
-        Self::from_root(&root)
-    }
-
-    #[cfg(not(feature = "embedded"))]
-    fn from_embedded() -> Result<Self> {
+        #[cfg(feature = "embedded")]
+        {
+            match crate::embedded::ensure_unpacked() {
+                Ok(root) => {
+                    tracing::debug!(root = %root.display(), "using embedded LibreOffice tree");
+                    return Runtime::from_root(&root);
+                }
+                // A binary built with the feature but without a tree falls through to download.
+                Err(Error::NoEmbeddedTree) => {}
+                Err(e) => return Err(e),
+            }
+        }
+        #[cfg(feature = "download")]
+        if let Some(source) = self.download {
+            let mut progress = self.progress;
+            let root = crate::download::fetch(&source, |p| {
+                if let Some(f) = progress.as_mut() {
+                    f(p);
+                }
+            })?;
+            tracing::debug!(root = %root.display(), "using downloaded LibreOffice tree");
+            return Runtime::from_root(&root);
+        }
         Err(Error::NoRuntime)
+    }
+}
+
+impl Runtime {
+    /// Find a runtime: `explicit`, then [`ENV_LO_DIR`], then the embedded tree if compiled in.
+    /// Use [`Locator`] to add a download source.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Locator::locate`].
+    pub fn locate(explicit: Option<&Path>) -> Result<Self> {
+        Locator::new().explicit(explicit).locate()
     }
 
     /// Resolve an installation root without consulting the environment.
