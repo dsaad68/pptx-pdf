@@ -1,0 +1,19 @@
+from collections.abc import Callable
+
+__version__: str
+
+class ConversionError(RuntimeError): ...
+class RuntimeUnavailable(RuntimeError): ...
+
+def convert_py(
+    input: str,
+    output: str,
+    *,
+    pages: str | None = None,
+    notes: bool = False,
+    font_dirs: list[str] = ...,
+    lo_dir: str | None = None,
+) -> str: ...
+def fetch_py(*, lo_dir: str | None = None, progress: Callable[[int, int | None, bool], None] | None = None) -> None: ...
+def libreoffice_version() -> str: ...
+def cache_dir() -> str: ...

@@ -27,6 +27,22 @@ its tree the same way. (The crates are not on crates.io yet, hence `--git`.) `pp
 Both flavours keep the unpacked tree (225–360 MB) in the user cache directory
 (`~/Library/Caches/pptx-pdf` or `~/.cache/pptx-pdf`; `PPTX_PDF_CACHE_DIR` overrides).
 
+## Python
+
+```bash
+uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.1
+```
+
+```python
+import pptx_pdf
+pptx_pdf.convert("deck.pptx", pages="2-5", notes=True)
+```
+
+Same renderer, in-process, with an `isolated=True` mode that keeps LibreOffice in a warm child
+interpreter. Details, uv variants and the error model are in [docs/python.md](docs/python.md).
+For agents, [skills/pptx-pdf/SKILL.md](skills/pptx-pdf/SKILL.md) describes the CLI in the
+Agent Skills format.
+
 ## How it works
 
 The long version — why, the strip pipeline step by step, measured results and the license

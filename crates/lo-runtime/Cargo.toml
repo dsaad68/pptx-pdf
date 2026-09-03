@@ -1,6 +1,6 @@
 [package]
 name = "lo-runtime"
-version = "0.2.0"
+version = "0.2.1"
 description = "Locates or unpacks the bundled LibreOffice runtime tree and prepares a user profile"
 edition.workspace = true
 rust-version.workspace = true

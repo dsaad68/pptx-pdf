@@ -56,6 +56,31 @@ impl TreeSource {
     }
 }
 
+impl TreeSource {
+    /// The tree published in the GitHub release `v<version>` of `repo` for this platform,
+    /// with an optional pinned hash; `None` when no tree is published for the platform.
+    #[must_use]
+    pub fn release(repo: &str, version: &str, sha256: Option<String>) -> Option<Self> {
+        let platform = platform_asset()?;
+        let repo = repo.trim_end_matches('/');
+        Some(Self::new(
+            format!("{repo}/releases/download/v{version}/lo-tree-{platform}-v{version}.tar.zst"),
+            sha256,
+        ))
+    }
+}
+
+/// The release asset name for this platform, or `None` when none is published for it.
+#[must_use]
+pub fn platform_asset() -> Option<&'static str> {
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("linux", "aarch64") => Some("linux-arm64-portable"),
+        ("linux", "x86_64") => Some("linux-amd64-portable"),
+        ("macos", "aarch64") => Some("macos-arm64"),
+        _ => None,
+    }
+}
+
 /// Progress events during [`fetch`], for a progress bar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -231,6 +256,20 @@ mod tests {
         assert_eq!(s.file_name(), "lo-tree-linux-arm64-v1.tar.zst");
         assert_eq!(s.sums_url(), "https://x.example/r/v1/SHA256SUMS");
         assert_eq!(s.sha256.as_deref(), Some("abc"));
+    }
+
+    #[test]
+    fn release_source_targets_the_versioned_asset() {
+        let Some(s) = TreeSource::release("https://github.com/o/r/", "1.2.3", None) else {
+            return;
+        };
+        assert!(
+            s.url
+                .starts_with("https://github.com/o/r/releases/download/v1.2.3/lo-tree-"),
+            "{}",
+            s.url
+        );
+        assert!(s.url.ends_with("-v1.2.3.tar.zst"));
     }
 
     #[test]

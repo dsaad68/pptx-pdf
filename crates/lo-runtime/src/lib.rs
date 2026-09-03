@@ -30,7 +30,7 @@ mod unpack;
 mod url;
 
 #[cfg(feature = "download")]
-pub use download::{Progress, TreeSource, fetch};
+pub use download::{Progress, TreeSource, fetch, platform_asset};
 pub use error::Error;
 pub use fontconfig::FontConfig;
 pub use locate::{ENV_LO_DIR, Locator, Runtime};

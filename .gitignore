@@ -10,3 +10,6 @@
 /tools/lo-tree/macos/fstrace.dylib
 /tools/lo-tree/macos/harness2
 /dist/
+.venv/
+__pycache__/
+*.pyc

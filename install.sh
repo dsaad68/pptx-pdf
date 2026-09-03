@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install pptx-pdf: downloads the prebuilt, self-contained binary for this machine from the
 # latest GitHub release, verifies its SHA-256 against the release's SHA256SUMS, and puts it in
-# ~/.local/bin (override with PPTX_PDF_INSTALL_DIR; pin a version with PPTX_PDF_VERSION=0.2.0).
+# ~/.local/bin (override with PPTX_PDF_INSTALL_DIR; pin a version with PPTX_PDF_VERSION=0.2.1).
 # PPTX_PDF_SLIM=1 installs the ~4 MB variant that downloads LibreOffice on first run instead
 # of carrying it inside the binary.
 #

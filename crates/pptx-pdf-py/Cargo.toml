@@ -1,0 +1,27 @@
+[package]
+name = "pptx-pdf-py"
+version = "0.2.1"
+description = "Python binding for pptx-pdf: PowerPoint to PDF with LibreOffice's renderer, no install"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+
+[features]
+default = ["download"]
+embedded = ["lo-runtime/embedded"]
+download = ["lo-runtime/download"]
+
+[dependencies]
+lo-runtime = { workspace = true }
+lok = { workspace = true }
+pyo3 = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true
