@@ -115,7 +115,7 @@ fn boot(slot: &mut Option<(Office, Profile)>) -> Result<&mut (Office, Profile), 
             .map(|mut b| std::mem::take(&mut *b))
             .unwrap_or_default();
         let runtime = locate(&opts).map_err(Failure::Runtime)?;
-        let profile = Profile::create().map_err(|e| Failure::Runtime(e.to_string()))?;
+        let profile = Profile::acquire().map_err(|e| Failure::Runtime(e.to_string()))?;
         // Precondition of configure_fontconfig is "before LibreOffice loads"; other Python
         // threads may be running, which is a documented limitation of in-process use.
         runtime

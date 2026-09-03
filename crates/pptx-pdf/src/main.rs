@@ -56,7 +56,13 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
     }
 
     let runtime = locator.locate().context("locating LibreOffice runtime")?;
-    let profile = Profile::create().context("creating user profile")?;
+    // Extra fonts are per run, so they get a throw-away profile; otherwise reuse the
+    // persistent one and its font cache.
+    let profile = if cli.font_dir.is_empty() {
+        Profile::acquire().context("acquiring user profile")?
+    } else {
+        Profile::create().context("creating user profile")?
+    };
     for dir in &cli.font_dir {
         let n = profile
             .add_fonts(dir)
