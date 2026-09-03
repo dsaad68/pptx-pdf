@@ -33,10 +33,10 @@ everywhere else:
 - **Size.** A LibreOffice install is 700–800 MB. In a container image that is most of the
   image; in a CI job it is minutes of cache traffic per run; on an agent's machine it is an
   installation step the agent has to be allowed to perform.
-- **Startup.** Every `soffice` invocation boots the whole suite (Writer, Calc, Base, the
-  extension manager, the start centre...) before converting anything: 0.7–1.5 s per file on a
-  fast machine, and it needs a user profile directory with a lock file, so concurrent
-  conversions need per-process profiles or they hang.
+- **Startup.** Every `soffice` invocation boots the whole suite before converting anything:
+  about 0.3 s on Debian's lean `-nogui` build, 0.6-0.9 s for the macOS app, more for the
+  stock desktop packages. It also needs a user profile directory with a lock file, so
+  concurrent conversions need per-process profiles or they hang.
 - **A moving target.** Package managers give you whatever version they have; the Homebrew
   cask on a CI runner pointed at a LibreOffice build that TDF had already removed from its
   download server. Reproducible output needs a pinned renderer.
@@ -229,18 +229,31 @@ Measured on a residential connection (80 MB self-contained macOS binary):
 
 ### Conversion time
 
-Cold start to finished PDF, fresh profile every run, 6-slide corpus deck and a real 12-slide
-deck with charts, icons and three font families:
+Every measurement is a cold process, and the baseline is LibreOffice itself started cold:
+`soffice --headless --convert-to pdf` with a fresh user profile, the same LibreOffice build
+`pptx-pdf` uses on that platform (Debian's `-nogui` package on Linux, `LibreOffice.app` on
+macOS). Two decks: the 6-slide corpus deck (text, shapes, a table, a chart) and a real
+12-slide deck with images, icons and three font families (5.6 MB).
 
-| | Linux arm64 | macOS arm64 |
-|---|---|---|
-| `pptx-pdf`, 6 slides | **0.28 s** | 2–3 s |
-| `pptx-pdf`, 12-slide real deck | n/a | 3 s |
-| `soffice --headless --convert-to pdf`, same deck, warm | n/a | 1.8 s |
+| deck | Linux: `soffice` cold | Linux: `pptx-pdf` | macOS: `soffice` cold | macOS: `pptx-pdf` |
+|---|---|---|---|---|
+| 6 slides | 0.30-0.35 s | **0.18 s** | 0.6-0.9 s | 1.3-1.6 s |
+| 12 slides | 1.5-1.9 s | **1.4-1.5 s** | 2.0-2.2 s | 2.6 s |
 
-LibreOffice boots in about 240 ms on Linux; on macOS the per-run profile creation and font
-enumeration dominate. `soffice` is quicker on the Mac because it reuses a persistent
-profile, and it produced the wrong fonts.
+Linux: LibreOfficeKit boots in about 0.24 s against `soffice`'s ~0.3 s, and on the heavy deck
+rendering dominates either way, so `pptx-pdf` is a little faster and never slower.
+
+macOS: `pptx-pdf` is slower, by roughly 0.6 s on either deck, and the reason is the fonts.
+With the generated `fonts.conf`, fontconfig enumerates the 700+ font files under
+`/System/Library/Fonts`, `/Library/Fonts` and `~/Library/Fonts` on every start. `soffice
+--headless` never does; it sees only the 128 fonts inside the bundle, which is why it is quick
+and why it rendered the 12-slide deck in the wrong typefaces (below). Pointing `pptx-pdf` at a
+bundled-only fontconfig brings it to 1.9-2.1 s on that deck, level with `soffice`. We chose
+correct fonts over the half second.
+
+Both tools keep a user profile with LibreOffice's font cache; `pptx-pdf` reuses a persistent
+one under its cache directory (file-locked, with a per-run fallback when another conversion
+holds it), which is what makes repeated runs cheap.
 
 ### Fidelity
 
