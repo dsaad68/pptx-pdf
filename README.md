@@ -30,7 +30,7 @@ Both flavours keep the unpacked tree (225–360 MB) in the user cache directory
 ## Python
 
 ```bash
-uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.1
+uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.2
 ```
 
 ```python

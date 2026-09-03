@@ -51,4 +51,4 @@ python3 -c "import re,sys; d=open(sys.argv[1],'rb').read(); print(len(re.findall
   or `PPTX_PDF_LO_DIR`.
 - Cache location: `~/Library/Caches/pptx-pdf` (macOS) or `~/.cache/pptx-pdf` (Linux);
   `PPTX_PDF_CACHE_DIR` overrides. Safe to delete; it is re-created on the next run.
-- Python: `uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.1`, then `pptx_pdf.convert("deck.pptx")`.
+- Python: `uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v0.2.2`, then `pptx_pdf.convert("deck.pptx")`.

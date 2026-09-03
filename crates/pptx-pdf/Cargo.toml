@@ -1,6 +1,6 @@
 [package]
 name = "pptx-pdf"
-version = "0.2.1"
+version = "0.2.2"
 description = "Convert PowerPoint decks to PDF with an embedded LibreOffice, no install required"
 edition.workspace = true
 rust-version.workspace = true
