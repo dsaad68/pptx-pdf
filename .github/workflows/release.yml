@@ -143,8 +143,8 @@ jobs:
             for name in pptx-pdf pptx-pdf-slim; do
               stage=$(mktemp -d)
               cp "artifacts/$name-$target/pptx-pdf" "$stage/"; chmod +x "$stage/pptx-pdf"
-              cp LICENSE-MIT LICENSE-APACHE README.md "$stage/"
-              tar -czf "dist/$name-$tag-$target.tar.gz" -C "$stage" pptx-pdf LICENSE-MIT LICENSE-APACHE README.md
+              cp LICENSE README.md "$stage/"
+              tar -czf "dist/$name-$tag-$target.tar.gz" -C "$stage" pptx-pdf LICENSE README.md
             done
           done
           for tree in linux-arm64-portable linux-amd64-portable macos-arm64; do

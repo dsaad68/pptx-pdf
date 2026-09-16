@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Convert PowerPoint decks to PDF with LibreOffice's renderer, no LibreOffice install"
 readme = "README.md"
 requires-python = ">=3.9"
-license = "MIT OR Apache-2.0"
+license = "Apache-2.0"
 classifiers = [
   "Programming Language :: Rust",
   "Programming Language :: Python :: 3",

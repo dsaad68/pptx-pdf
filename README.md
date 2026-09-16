@@ -4,7 +4,7 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/dsaad68/pptx-pdf/release.yml?label=build)](https://github.com/dsaad68/pptx-pdf/actions/workflows/release.yml)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20arm64%20%7C%20Linux%20arm64%20%7C%20Linux%20x86__64-lightgrey)](https://github.com/dsaad68/pptx-pdf/releases/latest)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](docs/python.md)
-[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](LICENSE-MIT)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 **`pptx-pdf` turns a PowerPoint deck into a PDF or into one PNG per slide, with LibreOffice's
 renderer built into a single binary, so nobody installs LibreOffice.**
@@ -118,4 +118,4 @@ rendering of the same PDF only at anti-aliased edges.
 - [Building and internals](docs/building.md): crates, fonts, build commands, end-to-end checks, status
 
 LibreOffice is MPL-2.0 and ships in the tree unmodified apart from relocation. `pptx-pdf` is
-MIT OR Apache-2.0.
+[Apache-2.0](LICENSE).

@@ -377,7 +377,7 @@ license header unchanged.
 License; DejaVu under the Bitstream Vera license; OpenSymbol under the LGPL. All permit
 redistribution in this form.
 
-**Our code.** The Rust crates, scripts and this document are MIT OR Apache-2.0. `pptx-pdf` is
+**Our code.** The Rust crates, scripts and this document are Apache-2.0. `pptx-pdf` is
 not affiliated with or endorsed by The Document Foundation; "LibreOffice" is their trademark
 and is used here only to say, accurately, whose renderer this is.
 

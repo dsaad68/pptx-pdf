@@ -19,8 +19,8 @@ dist=$repo/dist; rm -rf "$dist"; mkdir -p "$dist"
 package() { # <target> <binary>
   [ -x "$2" ] || { echo "missing $2"; exit 1; }
   local asset="pptx-pdf-$tag-$1.tar.gz" stage; stage=$(mktemp -d)
-  cp "$2" "$stage/pptx-pdf"; cp LICENSE-MIT LICENSE-APACHE README.md "$stage/"
-  tar -czf "$dist/$asset" -C "$stage" pptx-pdf LICENSE-MIT LICENSE-APACHE README.md; rm -rf "$stage"
+  cp "$2" "$stage/pptx-pdf"; cp LICENSE README.md "$stage/"
+  tar -czf "$dist/$asset" -C "$stage" pptx-pdf LICENSE README.md; rm -rf "$stage"
   printf "  %-48s %6.1f MB\n" "$asset" "$(echo "$(stat -f %z "$dist/$asset" 2>/dev/null || stat -c %s "$dist/$asset")/1048576" | bc -l)"
 }
 echo "== assets"
@@ -38,8 +38,8 @@ case "$host" in Darwin-arm64) tree=macos-arm64; target=aarch64-apple-darwin;; Li
 if [ -n "$tree" ]; then
   sha=$(shasum -a 256 "$dist/lo-tree-$tree-$tag.tar.zst" | cut -d' ' -f1)
   PPTX_PDF_LO_TREE_SHA256=$sha cargo build -p pptx-pdf --release --locked --target-dir target-slim >/dev/null 2>&1
-  stage=$(mktemp -d); cp target-slim/release/pptx-pdf "$stage/"; cp LICENSE-MIT LICENSE-APACHE README.md "$stage/"
-  tar -czf "$dist/pptx-pdf-slim-$tag-$target.tar.gz" -C "$stage" pptx-pdf LICENSE-MIT LICENSE-APACHE README.md; rm -rf "$stage"
+  stage=$(mktemp -d); cp target-slim/release/pptx-pdf "$stage/"; cp LICENSE README.md "$stage/"
+  tar -czf "$dist/pptx-pdf-slim-$tag-$target.tar.gz" -C "$stage" pptx-pdf LICENSE README.md; rm -rf "$stage"
   printf "  %-48s %6.1f MB\n" "pptx-pdf-slim-$tag-$target.tar.gz" "$(echo "$(stat -f %z "$dist/pptx-pdf-slim-$tag-$target.tar.gz" 2>/dev/null || stat -c %s "$dist/pptx-pdf-slim-$tag-$target.tar.gz")/1048576" | bc -l)"
 fi
 cp install.sh "$dist/"

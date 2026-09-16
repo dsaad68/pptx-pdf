@@ -94,4 +94,4 @@ both binary flavours and the wheels on GitHub runners and publishes them with `S
 
 LibreOffice is MPL-2.0; the tree ships its libraries unmodified apart from a relocatable
 `fundamentalrc` and rpath patching, both reproducible from `tools/lo-tree`. `pptx-pdf` itself
-is MIT OR Apache-2.0.
+is Apache-2.0.
