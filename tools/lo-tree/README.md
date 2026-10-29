@@ -7,6 +7,10 @@ the `embedded` cargo feature compiles into the binary.
 
 ## Measured (Debian trixie, LibreOffice 25.2, 2026-09)
 
+The Dockerfile refuses a LibreOffice older than `LO_MIN_VERSION` (currently
+`4:25.2.3-2+deb13u8`, the trixie-security fix for CVE-2026-63277). Raise it with each Debian
+security update to LibreOffice so a release never embeds a library Debian has already patched.
+
 | | arm64 | x86_64 |
 |---|---|---|
 | `libreoffice-impress-nogui` + deps as installed | 199 MB | 199 MB |
