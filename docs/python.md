@@ -12,17 +12,17 @@ The package is not on PyPI. Two ways to get it from GitHub:
 a `--find-links` index:
 
 ```bash
-uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v1.0.0
+uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v1.0.1
 ```
 
 or pin it in `pyproject.toml`:
 
 ```toml
 [project]
-dependencies = ["pptx-pdf==1.0.0"]
+dependencies = ["pptx-pdf==1.0.1"]
 
 [tool.uv]
-find-links = ["https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v1.0.0"]
+find-links = ["https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v1.0.1"]
 ```
 
 Wheels exist for macOS Apple Silicon, Linux arm64 and Linux x86_64 (glibc 2.36+), Python 3.9+

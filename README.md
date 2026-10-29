@@ -45,7 +45,7 @@ tree lives in the user cache (`~/Library/Caches/pptx-pdf` or `~/.cache/pptx-pdf`
 **Python**, same renderer in-process, wheels on the release page:
 
 ```bash
-uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v1.0.0
+uv add pptx-pdf --find-links https://github.com/dsaad68/pptx-pdf/releases/expanded_assets/v1.0.1
 ```
 
 ## Use
